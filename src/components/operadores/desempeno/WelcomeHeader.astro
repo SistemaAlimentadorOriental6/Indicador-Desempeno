@@ -1,0 +1,110 @@
+---
+import Icon from "@components/ui/Icon.astro";
+
+interface Props {
+    name: string;
+}
+
+const { name } = Astro.props;
+---
+
+<header class="dashboard-header animate-entrance">
+    <div class="welcome-content">
+        <h1 class="welcome-text">
+            Buenos días, <span class="name-wrapper"
+                >{name} <span class="wave">👋</span></span
+            >
+        </h1>
+        <p class="welcome-sub">
+            ¡Sigue así para alcanzar tus metas de este mes!
+        </p>
+    </div>
+</header>
+
+<style>
+    .dashboard-header {
+        margin-bottom: 50px;
+        position: relative;
+        padding: 5px 0;
+    }
+
+    .header-top {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .date-tag {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 8px 16px;
+        border-radius: 12px;
+        border: 1px solid #f1f5f9;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+    }
+
+    .welcome-text {
+        font-size: 3rem;
+        font-weight: 900;
+        color: #0f172a;
+        margin-bottom: 12px;
+        letter-spacing: -1.5px;
+        line-height: 1.1;
+    }
+
+    .name-wrapper {
+        color: var(--color-primario);
+        display: inline-block;
+    }
+
+    .wave {
+        display: inline-block;
+        animation: wave-hand 2.8s infinite;
+        transform-origin: 70% 70%;
+        margin-left: 8px;
+    }
+
+    .welcome-sub {
+        color: #64748b;
+        font-size: 1.15rem;
+        font-weight: 500;
+        max-width: 650px;
+        line-height: 1.6;
+    }
+
+    .highlight-green {
+        color: var(--color-primario);
+        font-weight: 800;
+        background: var(--color-primario-soft);
+        padding: 4px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--color-primario-medium);
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-header {
+            margin-bottom: 25px;
+        }
+        .welcome-text {
+            font-size: 1.8rem;
+            letter-spacing: -1px;
+            margin-bottom: 5px;
+        }
+        .welcome-sub {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .header-top {
+            margin-bottom: 10px;
+        }
+        .date-tag {
+            display: none;
+        }
+    }
+</style>

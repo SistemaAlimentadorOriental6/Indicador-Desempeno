@@ -1,0 +1,531 @@
+---
+import AdminLayout from "@layouts/AdminLayout.astro";
+import HeaderCard from "@components/ui/HeaderCard.astro";
+import SearchFilters from "@components/rankings/SearchFilters.astro";
+import Tabs from "@components/ui/Tabs.astro";
+import MaintenanceCard from "@components/rankings/MaintenanceCard.astro";
+import MaintenanceDetailModal from "@components/rankings/MaintenanceDetailModal.astro";
+
+const filtros = [
+    {
+        nombre: "Todos",
+        count: 0,
+        activo: true,
+        icon: "users",
+    },
+];
+---
+
+<AdminLayout titulo="Rankings de Mantenimiento">
+    <div id="maintenance-ranking-view">
+        <HeaderCard
+            titulo="Rankings de Mantenimiento"
+            subtitulo="Desempeño del personal técnico basado en horas programadas vs realizadas"
+        />
+
+        <SearchFilters resultados={0} />
+
+        <Tabs filtros={filtros} />
+
+        <div class="results-meta">
+            <p>Mostrando ... técnicos</p>
+        </div>
+
+        <div class="maintenance-grid"></div>
+
+        <div
+            id="infinite-scroll-sentinel"
+            style="height: 20px; margin-top: 20px;"
+        >
+        </div>
+    </div>
+
+    <MaintenanceDetailModal />
+
+    <script>
+        import { API_CONFIG, getApiUrl } from "@config/api";
+
+        let allMaintenance: any[] = [];
+        let filteredMaintenance: any[] = [];
+        let itemsToShow = 20;
+        const ITEMS_PER_PAGE = 20;
+        let observer: IntersectionObserver | null = null;
+
+        async function loadMaintenanceData() {
+            const page = document.getElementById("maintenance-ranking-view");
+            if (!page) return;
+
+            const grid = page.querySelector(".maintenance-grid");
+            if (!grid) return;
+
+            renderSkeletons(grid, 12);
+
+            try {
+                const url = getApiUrl(
+                    API_CONFIG.ENDPOINTS.MANTENIMIENTO.GET_RANKING,
+                );
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Error fetching data");
+
+                const data = await response.json();
+
+                // Asignar posición
+                allMaintenance = data.map((p: any, index: number) => ({
+                    ...p,
+                    posicion: index + 1,
+                }));
+
+                filteredMaintenance = [...allMaintenance];
+
+                // Reset e iniciar
+                grid.innerHTML = "";
+                itemsToShow = ITEMS_PER_PAGE;
+                renderCards(filteredMaintenance.slice(0, itemsToShow));
+                initIntersectionObserver();
+                updateMeta(filteredMaintenance.length);
+                updateCounts(filteredMaintenance.length);
+            } catch (e) {
+                console.error("Error loading maintenance:", e);
+                grid.innerHTML = `<div class="error-msg">Error al cargar datos.</div>`;
+            }
+        }
+
+        function renderSkeletons(grid: Element, count: number) {
+            grid.innerHTML = "";
+            for (let i = 0; i < count; i++) {
+                const skeleton = document.createElement("div");
+                skeleton.className = "skeleton-card";
+                skeleton.innerHTML = `
+                    <div class="skeleton-rank"></div>
+                    <div class="skeleton-avatar"></div>
+                    <div class="skeleton-name"></div>
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-metrics">
+                        <div class="skeleton-metric"></div>
+                        <div class="skeleton-metric"></div>
+                    </div>
+                `;
+                grid.appendChild(skeleton);
+            }
+        }
+
+        function initIntersectionObserver() {
+            const sentinel = document.getElementById(
+                "infinite-scroll-sentinel",
+            );
+            if (!sentinel) return;
+
+            if (observer) observer.disconnect();
+
+            observer = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0].isIntersecting) {
+                        loadMoreItems();
+                    }
+                },
+                { rootMargin: "200px" },
+            );
+
+            observer.observe(sentinel);
+        }
+
+        function loadMoreItems() {
+            if (itemsToShow >= filteredMaintenance.length) return;
+
+            const nextBatch = filteredMaintenance.slice(
+                itemsToShow,
+                itemsToShow + ITEMS_PER_PAGE,
+            );
+            renderCards(nextBatch, true);
+            itemsToShow += ITEMS_PER_PAGE;
+            updateMeta(filteredMaintenance.length);
+        }
+
+        function renderCards(list: any[], append = false) {
+            const grid = document.querySelector(".maintenance-grid");
+            if (!grid) return;
+
+            if (!append) grid.innerHTML = "";
+
+            list.forEach((op, index) => {
+                const cardWrapper = document.createElement("div");
+                cardWrapper.className = "card-entry";
+                cardWrapper.style.animationDelay = `${Math.min(index * 0.05, 0.5)}s`;
+
+                // Formateo de horas (igual a MaintenanceCard.astro)
+                const formatH = (num: any) => {
+                    const n = parseFloat(num || 0);
+                    const h = Math.floor(Math.abs(n));
+                    const m = Math.round((Math.abs(n) % 1) * 60);
+                    return `${n < 0 ? "-" : ""}${h}:${m.toString().padStart(2, "0")}`;
+                };
+
+                const cumplimientoNum = parseFloat(
+                    op.cumplimiento.replace("%", ""),
+                );
+                const chartColor =
+                    cumplimientoNum >= 95
+                        ? "#2ecc71"
+                        : cumplimientoNum >= 85
+                          ? "#f1c40f"
+                          : "#e74c3c";
+                const badgeColor =
+                    op.rango === "ORO"
+                        ? "#fbbf24"
+                        : op.rango === "PLATA"
+                          ? "#94a3b8"
+                          : op.rango === "BRONCE"
+                            ? "#b45309"
+                            : "#64748b";
+
+                cardWrapper.innerHTML = `
+                    <div class="maintenance-card maintenance-card-trigger" 
+                         data-nombre="${op.nombre}" 
+                         data-cedula="${op.cedula}"
+                         data-rol="${op.rol}"
+                         data-rango="${op.rango}"
+                         data-imagen="${op.imagen}"
+                         data-horas-programadas="${op.horasProgramadas}"
+                         data-horas-realizadas="${op.horasRealizadas}"
+                         data-cumplimiento="${op.cumplimiento}"
+                         data-detalle-realizado='${JSON.stringify(op.detalleRealizado || [])}'
+                         data-detalle-programado='${JSON.stringify(op.detalleProgramado || [])}'
+                         data-codigo="${op.codigo || "---"}"
+                         data-zona="${op.zona || "---"}"
+                         data-padrino="${op.padrino || "---"}"
+                         data-ingreso="${op.ingreso || "---"}"
+                         data-edad="${op.edad || "---"}"
+                         data-antiguedad="${op.antiguedad || "---"}">
+                        
+                        <div class="rank-badge">#${op.posicion}</div>
+                        
+                        <div class="card-content-actual">
+                            <div class="card-header">
+                                <div class="avatar-wrapper">
+                                    <img src="${op.imagen}" alt="${op.nombre}" class="operator-img" loading="lazy" onerror="this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 24 24%22 fill%3D%22%23cbd5e1%22%3E%3Cpath d%3D%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22%2F%3E%3C%2Fsvg%3E';" />
+                                    <div class="status-tag" style="background-color: ${badgeColor}">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+                                        ${op.rango}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h2 class="operator-name">${op.nombre}</h2>
+                                <p class="operator-role">${op.rol}</p>
+                                <p class="operator-id">ID: ${op.cedula}</p>
+                                <div class="metrics-container">
+                                    <div class="main-metric">
+                                        <span class="label">Cumplimiento</span>
+                                        <div class="value-row">
+                                            <span class="value" style="color: ${chartColor}">${op.cumplimiento}</span>
+                                            <div class="mini-chart">
+                                                <svg viewBox="0 0 36 36" class="circular-chart">
+                                                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="4"></path>
+                                                    <path class="circle" stroke-dasharray="${cumplimientoNum}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="${chartColor}" stroke-width="4" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="secondary-metrics">
+                                        <div class="metric-box">
+                                            <span class="label">H. Programadas</span>
+                                            <span class="value">${formatH(op.horasProgramadas)}</span>
+                                        </div>
+                                        <div class="metric-box">
+                                            <span class="label">H. Realizadas</span>
+                                            <span class="value">${formatH(op.horasRealizadas)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(cardWrapper);
+            });
+        }
+
+        function updateMeta(total: number) {
+            const meta = document.querySelector(".results-meta");
+            const currentlyShowing = Math.min(itemsToShow, total);
+            if (meta) {
+                meta.innerHTML = `<p>Mostrando ${currentlyShowing} de ${total} técnicos</p>`;
+            }
+        }
+
+        function updateCounts(total: number) {
+            const tabCount = document.querySelector(".tab-count");
+            if (tabCount) tabCount.textContent = total.toString();
+
+            const searchRes = document.querySelector(
+                ".search-filters-results b",
+            );
+            if (searchRes) searchRes.textContent = total.toString();
+        }
+
+        // Cargar datos al iniciar
+        document.addEventListener("astro:page-load", loadMaintenanceData);
+    </script>
+
+    <style is:global>
+        .maintenance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card-entry {
+            animation: slideUpFade 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+            cursor: pointer;
+        }
+
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Skeleton Styles */
+        .skeleton-card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px;
+            min-height: 380px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #f1f5f9;
+        }
+
+        .skeleton-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            transform: translateX(-100%);
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.4),
+                transparent
+            );
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .skeleton-rank {
+            width: 40px;
+            height: 24px;
+            background: #f1f5f9;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            border-radius: 12px;
+        }
+        .skeleton-avatar {
+            width: 90px;
+            height: 90px;
+            background: #f1f5f9;
+            border-radius: 50%;
+            margin-bottom: 20px;
+            margin-top: 10px;
+        }
+        .skeleton-name {
+            width: 70%;
+            height: 20px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .skeleton-text {
+            width: 40%;
+            height: 14px;
+            background: #f1f5f9;
+            border-radius: 7px;
+            margin-bottom: 25px;
+        }
+        .skeleton-metrics {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: auto;
+        }
+        .skeleton-metric {
+            height: 60px;
+            background: #f1f5f9;
+            border-radius: 20px;
+        }
+
+        .error-msg {
+            text-align: center;
+            padding: 40px;
+            color: #e74c3c;
+            grid-column: 1 / -1;
+        }
+
+        /* Replicar estilos de MaintenanceCard para el renderizado dinámico */
+        .maintenance-card {
+            background: white;
+            border-radius: 24px;
+            padding: 20px;
+            shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+        }
+        .maintenance-card:hover {
+            transform: translateY(-5px);
+            border-color: #2ecc71;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .rank-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #0f172a;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            z-index: 2;
+        }
+        .avatar-wrapper {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+        .operator-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        .status-tag {
+            position: absolute;
+            bottom: -5px;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .operator-name {
+            font-size: 1.1rem;
+            font-weight: 800;
+            text-align: center;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+        .operator-role {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+        .operator-id {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+        .metrics-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: auto;
+        }
+        .main-metric {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        .main-metric .label {
+            display: block;
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .value-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .main-metric .value {
+            font-size: 1.6rem;
+            font-weight: 950;
+        }
+        .mini-chart {
+            width: 35px;
+            height: 35px;
+        }
+        .circular-chart {
+            display: block;
+            max-width: 100%;
+        }
+        .circle-bg {
+            fill: none;
+            stroke: #e2e8f0;
+            stroke-width: 4;
+        }
+        .circle {
+            fill: none;
+            stroke-width: 4;
+            stroke-linecap: round;
+        }
+        .secondary-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .metric-box {
+            background: white;
+            border: 1px solid #f1f5f9;
+            padding: 12px;
+            border-radius: 16px;
+            text-align: center;
+        }
+        .metric-box .label {
+            display: block;
+            font-size: 0.65rem;
+            color: #94a3b8;
+            font-weight: 800;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+        .metric-box .value {
+            font-size: 1rem;
+            font-weight: 900;
+            color: #1e293b;
+        }
+    </style>
+</AdminLayout>

@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* Colores Base (Estilo Vuesax) */
+    --vs-primary-raw: 76, 194, 83;
+    /* Verde SAO6 */
+    --color-primario: rgb(var(--vs-primary-raw));
+    --color-primario-soft: rgba(var(--vs-primary-raw), 0.1);
+    --color-primario-medium: rgba(var(--vs-primary-raw), 0.2);
+
+    /* Estados */
+    --color-success: #46c93a;
+    --color-danger: #ff4757;
+    --color-warning: #ffba00;
+    --color-dark: #1e1e1e;
+
+    /* Fondos */
+    --color-fondo-app: #f4f7f8;
+    --color-fondo-blanco: #ffffff;
+    --color-fondo-soft: #f4f7f8;
+
+    /* Tipografía */
+    --color-texto-dark: #2c3e50;
+    --color-texto-grey: #a0a6ae;
+    --fuente-principal: 'Outfit', sans-serif;
+
+    /* Sombras Premium */
+    --sombra-suave: 0px 5px 20px 0px rgba(0, 0, 0, 0.05);
+    --sombra-premium: 0px 10px 30px -5px rgba(0, 0, 0, 0.1);
+    --sombra-primaria: 0px 10px 20px -10px rgba(var(--vs-primary-raw), 0.5);
+
+    /* Bordes */
+    --radio-sm: 12px;
+    --radio-md: 18px;
+    --radio-lg: 28px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--fuente-principal);
+    background-color: var(--color-fondo-app);
+    color: var(--color-texto-dark);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+button,
+select,
+textarea {
+    font-family: inherit;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Scrollbar Personalizado */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #dfe4e8;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #cfd5db;
+}
+
+/* Utilidades Comunes */
+.texto-gris {
+    color: var(--color-texto-grey);
+}
+
+.fuente-negrita {
+    font-weight: 700;
+}
+
+.fuente-media {
+    font-weight: 500;
+}
+
+/* Animaciones Premium */
+@keyframes fadeInEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-entrance {
+    animation: fadeInEntrance 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Custom View Transitions */
+::view-transition-old(root) {
+    animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+}
+
+::view-transition-new(root) {
+    animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both fade-in-entrance;
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes fade-in-entrance {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

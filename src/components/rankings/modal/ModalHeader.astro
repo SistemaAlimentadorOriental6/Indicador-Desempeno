@@ -1,0 +1,157 @@
+---
+import Icon from "@components/ui/Icon.astro";
+---
+
+<header class="modal-header">
+    <div class="header-main">
+        <div class="operator-profile">
+            <div class="profile-img-container">
+                <img
+                    src=""
+                    alt="Cargando..."
+                    class="profile-img"
+                    id="modal-img"
+                    onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 24 24%22 fill%3D%22%23cbd5e1%22%3E%3Cpath d%3D%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22%2F%3E%3C%2Fsvg%3E';"
+                />
+            </div>
+            <div class="profile-info">
+                <div class="name-badge">
+                    <h1 id="modal-nombre">---</h1>
+                    <span class="role-tag" id="modal-cargo">---</span>
+                </div>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <Icon
+                            name="target"
+                            size={14}
+                            color="var(--color-texto-grey)"
+                        />
+                        <span
+                            >Código: <strong id="modal-codigo">---</strong
+                            ></span
+                        >
+                    </div>
+                    <div class="detail-item">
+                        <Icon
+                            name="id-card"
+                            size={14}
+                            color="var(--color-texto-grey)"
+                        />
+                        <span
+                            >Cédula: <strong id="modal-cedula">---</strong
+                            ></span
+                        >
+                    </div>
+                    <div class="detail-item">
+                        <Icon
+                            name="users"
+                            size={14}
+                            color="var(--color-texto-grey)"
+                        />
+                        <span>Edad: <strong id="modal-edad">---</strong></span>
+                    </div>
+                    <div class="detail-item">
+                        <Icon
+                            name="calendar"
+                            size={14}
+                            color="var(--color-texto-grey)"
+                        />
+                        <span
+                            >Ingreso: <strong id="modal-ingreso">---</strong
+                            ></span
+                        >
+                    </div>
+                    <div class="detail-item">
+                        <Icon
+                            name="clock"
+                            size={14}
+                            color="var(--color-texto-grey)"
+                        />
+                        <span
+                            >Antigüedad: <strong id="modal-antiguedad"
+                                >---</strong
+                            ></span
+                        >
+                    </div>
+                    <div class="detail-item">
+                        <Icon
+                            name="activity"
+                            size={14}
+                            color="var(--color-texto-grey)"
+                        />
+                        <span
+                            >Estado: <strong id="modal-estado">---</strong
+                            ></span
+                        >
+                    </div>
+                    <div class="detail-item">
+                        <Icon
+                            name="map-pin"
+                            size={14}
+                            color="var(--color-texto-grey)"
+                        />
+                        <span>Zona: <strong id="modal-zona">---</strong></span>
+                    </div>
+                    <div class="detail-item">
+                        <Icon
+                            name="users"
+                            size={14}
+                            color="var(--color-texto-grey)"
+                        />
+                        <span
+                            >Padrino: <strong id="modal-padrino">---</strong
+                            ></span
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-stats">
+            <div class="stat-box dark">
+                <div class="stat-main">
+                    <span class="value" id="modal-ef-mensual">---</span>
+                    <span class="label" id="modal-ef-mensual-label"
+                        >Eficiencia Mensual</span
+                    >
+                </div>
+                <div class="status-indicator">
+                    <Icon name="activity" size={14} />
+                    <span id="modal-ef-mensual-status">---</span>
+                </div>
+            </div>
+            <div class="stat-box primary">
+                <div class="stat-main">
+                    <span class="value" id="modal-ef-anual">---</span>
+                    <span class="label">Ef. Global</span>
+                </div>
+                <div class="status-indicator" id="modal-status-indicator">
+                    <Icon name="user-check" size={14} />
+                    <span id="modal-status-text">---</span>
+                </div>
+            </div>
+            <button
+                class="close-modal-btn"
+                id="close-detail-modal"
+                aria-label="Cerrar modal"
+            >
+                <Icon name="x" size={20} />
+            </button>
+        </div>
+    </div>
+
+    <nav class="modal-nav">
+        <button class="nav-btn active" data-tab="general">
+            <Icon name="activity" size={16} />
+            Vista General
+        </button>
+        <button class="nav-btn" data-tab="kilómetros">
+            <Icon name="target" size={16} />
+            Kilómetros
+        </button>
+        <button class="nav-btn" data-tab="bonos">
+            <Icon name="dollar" size={16} />
+            Bonos
+        </button>
+    </nav>
+</header>

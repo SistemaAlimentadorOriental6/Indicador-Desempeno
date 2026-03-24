@@ -1,0 +1,49 @@
+---
+import Icon from "@components/ui/Icon.astro";
+
+interface Props {
+    title: string;
+    icon?: string;
+}
+
+const { title, icon = "activity" } = Astro.props;
+---
+
+<div class="section-title">
+    <div class="icon-box">
+        <Icon name={icon} size={20} color="var(--color-primario)" />
+    </div>
+    <h2>{title}</h2>
+</div>
+
+<style>
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 25px;
+    }
+    .section-title .icon-box {
+        width: 48px;
+        height: 48px;
+        background: white;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.04);
+        border: 1px solid #f8fafc;
+    }
+    .section-title h2 {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #1e293b;
+        letter-spacing: -0.5px;
+    }
+
+    @media (max-width: 768px) {
+        .section-title h2 {
+            font-size: 1.3rem;
+        }
+    }
+</style>

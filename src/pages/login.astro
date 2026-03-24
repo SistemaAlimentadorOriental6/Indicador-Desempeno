@@ -1,0 +1,795 @@
+---
+import "../styles/global.css";
+import Icon from "@components/ui/Icon.astro";
+import { ViewTransitions } from "astro:transitions";
+
+const razon = Astro.url.searchParams.get("razon");
+const mensajesRazon: Record<string, string> = {
+    sesion_requerida: "Debes iniciar sesión para acceder.",
+    sin_permisos: "No tienes permisos para acceder al área de administración.",
+    sesion_invalida:
+        "Tu sesión ha expirado. Por favor, inicia sesión de nuevo.",
+};
+const mensajeInicial = razon
+    ? (mensajesRazon[razon] ?? "Acceso restringido.")
+    : "";
+---
+
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="viewport" content="width=device-width" />
+        <title>Iniciar Sesión | SAO6</title>
+        <ViewTransitions />
+    </head>
+    <body>
+        <main class="login-container">
+            <!-- Sección Izquierda / Inferior: Formulario -->
+            <section class="form-section">
+                <div class="mobile-handle"></div>
+                <div class="form-wrapper">
+                    <header class="form-header">
+                        <div class="greeting-box">
+                            <h1 class="animate-welcome">
+                                Bienvenido <span class="wave-emoji">👋</span>
+                            </h1>
+                            <div class="greeting-glow"></div>
+                        </div>
+                        <p class="animate-subtext">
+                            Estamos felices de verte de nuevo. Por favor,
+                            ingresa tus credenciales.
+                        </p>
+                    </header>
+
+                    <form class="login-form">
+                        <div class="input-group">
+                            <label for="username">CÓDIGO DEL COLABORADOR</label>
+                            <div class="input-wrapper">
+                                <input
+                                    type="text"
+                                    id="username"
+                                    placeholder="Ej: 12345"
+                                    autocomplete="username"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="password">CONTRASEÑA</label>
+                            <div class="input-wrapper">
+                                <input
+                                    type="password"
+                                    id="password"
+                                    placeholder="••••••••"
+                                    autocomplete="current-password"
+                                />
+                                <button
+                                    type="button"
+                                    class="toggle-password"
+                                    id="togglePassword"
+                                    aria-label="Mostrar contraseña"
+                                >
+                                    <Icon
+                                        name="eye"
+                                        size={20}
+                                        color="var(--color-texto-grey)"
+                                    />
+                                </button>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="submit-btn" id="loginBtn">
+                            Iniciar Sesión
+                        </button>
+                        <div
+                            id="loginMessage"
+                            class={`login-message${mensajeInicial ? " error visible" : ""}`}
+                        >
+                            {mensajeInicial}
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Sección Derecha / Superior: Imagen/Branding -->
+            <section class="branding-section">
+                <div class="image-container">
+                    <img
+                        src="/image.png"
+                        alt="Bus Medellín Conduce el Cambio"
+                        class="background-img"
+                    />
+                    <div class="overlay"></div>
+                </div>
+
+                <div class="branding-content">
+                    <div class="logo-container">
+                        <div class="logo-badge">
+                            <img
+                                src="/LOGOSAO6.svg"
+                                alt="SAO6 Logo"
+                                class="login-logo-img"
+                            />
+                        </div>
+                        <span class="logo-text">SAO6</span>
+                    </div>
+
+                    <div class="hero-text">
+                        <h2 class="hero-title">
+                            ¡Medellín <br />
+                            Conduce el <br />
+                            <span class="highlight">Cambio!</span>
+                        </h2>
+                        <p class="hero-subtitle">
+                            Sistema de Indicador de Desempeño para operadores
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <style>
+            :global(body),
+            :global(html) {
+                margin: 0 !important;
+                padding: 0 !important;
+                height: 100%;
+                width: 100%;
+                background-color: white;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            .login-container {
+                display: flex;
+                min-height: 100vh;
+                width: 100%;
+                background-color: white;
+                position: relative;
+                overflow: hidden;
+            }
+
+            /* Sección Formulario */
+            .form-section {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 40px;
+                background: white;
+                position: relative;
+                z-index: 20;
+            }
+
+            .mobile-handle {
+                display: none;
+                width: 40px;
+                height: 4px;
+                background: #e2e8f0;
+                border-radius: 2px;
+                margin-bottom: 20px;
+            }
+
+            .form-wrapper {
+                width: 100%;
+                max-width: 420px;
+            }
+
+            .form-header {
+                margin-bottom: 40px;
+            }
+
+            .form-header h1 {
+                font-size: 2.2rem;
+                font-weight: 800;
+                color: #0f172a;
+                margin-bottom: 12px;
+            }
+
+            .form-header p {
+                color: #64748b;
+                font-size: 1rem;
+                font-weight: 500;
+            }
+
+            .login-form {
+                display: flex;
+                flex-direction: column;
+                gap: 25px;
+            }
+
+            .input-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .input-group label {
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: #94a3b8;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+            }
+
+            .input-wrapper {
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
+
+            .input-wrapper input {
+                width: 100%;
+                padding: 16px 20px;
+                background: #f8fafc;
+                border: 2px solid #f1f5f9;
+                border-radius: 18px;
+                font-size: 1rem;
+                font-weight: 600;
+                color: #1e293b;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .input-wrapper input:focus {
+                outline: none;
+                background: white;
+                border-color: var(--color-primario);
+                box-shadow: 0 10px 25px -5px rgba(var(--vs-primary-raw), 0.15);
+                transform: translateY(-2px);
+            }
+
+            .input-wrapper input::placeholder {
+                color: #cbd5e1;
+            }
+
+            .toggle-password {
+                position: absolute;
+                right: 18px;
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 5px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #94a3b8;
+                transition: all 0.3s;
+            }
+
+            .toggle-password:hover {
+                color: var(--color-primario);
+                transform: scale(1.1);
+            }
+
+            .submit-btn {
+                margin-top: 10px;
+                padding: 18px;
+                background: #4cc253;
+                color: white;
+                border: none;
+                border-radius: 18px;
+                font-size: 1rem;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+                box-shadow: 0 8px 16px -4px rgba(76, 194, 83, 0.3);
+            }
+
+            .submit-btn:hover {
+                transform: translateY(-4px) scale(1.02);
+                box-shadow: 0 12px 24px -6px rgba(76, 194, 83, 0.5);
+                background: #45b34b;
+            }
+
+            .submit-btn:active {
+                transform: translateY(-1px);
+            }
+
+            /* Sección Branding */
+            .branding-section {
+                flex: 1.3;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                background: #0f172a;
+                overflow: hidden;
+            }
+
+            .image-container {
+                position: absolute;
+                inset: 0;
+                z-index: 1;
+            }
+
+            .background-img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transform: scale(1.05);
+                animation: slowMovement 30s infinite alternate linear;
+            }
+
+            .overlay {
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(
+                    135deg,
+                    rgba(15, 23, 42, 0.7) 0%,
+                    rgba(15, 23, 42, 0.3) 100%
+                );
+            }
+
+            .branding-content {
+                position: relative;
+                z-index: 10;
+                padding: 60px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                color: white;
+            }
+
+            .logo-container {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                animation: fadeInDown 0.8s ease-out;
+            }
+
+            .logo-badge {
+                background: var(--color-primario);
+                padding: 10px;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            }
+
+            .login-logo-img {
+                width: 28px;
+                height: 28px;
+                object-fit: contain;
+            }
+
+            .logo-text {
+                font-size: 1.8rem;
+                font-weight: 900;
+                letter-spacing: -0.5px;
+            }
+
+            .hero-text {
+                margin-top: auto;
+                animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .hero-title {
+                font-size: 5rem;
+                font-weight: 950;
+                line-height: 1.05; /* Incrementado para evitar que se vea muy junto */
+                margin-bottom: 30px;
+                letter-spacing: -2px;
+            }
+
+            .hero-title .highlight {
+                color: #4cc253;
+            }
+
+            .hero-subtitle {
+                font-size: 1.25rem;
+                font-weight: 500;
+                opacity: 0.9;
+                max-width: 450px;
+                line-height: 1.6;
+                color: #f1f5f9;
+            }
+
+            /* Responsive Design */
+            @media (max-width: 1024px) {
+                .hero-title {
+                    font-size: 4rem;
+                }
+            }
+
+            @media (max-width: 768px) {
+                .login-container {
+                    flex-direction: column-reverse; /* Cambiado para que la imagen quede arriba */
+                    background: #f8fafc;
+                }
+
+                .branding-section {
+                    flex: 1; /* Se expande para llenar todo el espacio superior sobrante */
+                    height: auto;
+                    min-height: 40vh;
+                    width: 100%;
+                    overflow: hidden;
+                }
+
+                .branding-content {
+                    padding: 50px 30px 80px 30px; /* Más padding para separar del bottom sheet */
+                }
+
+                .hero-title {
+                    font-size: 3.2rem;
+                    line-height: 1.1;
+                    margin-bottom: 20px;
+                }
+
+                .hero-subtitle {
+                    font-size: 1rem;
+                    max-width: 300px;
+                }
+
+                .form-section {
+                    flex: none;
+                    margin-top: -50px; /* Incrementado para asegurar el solapamiento */
+                    padding: 50px 30px;
+                    border-radius: 40px 40px 0 0;
+                    box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.15);
+                    min-height: auto;
+                    background: white;
+                }
+
+                .mobile-handle {
+                    display: block;
+                }
+
+                .form-wrapper {
+                    max-width: 100%;
+                }
+
+                .logo-text {
+                    font-size: 1.5rem;
+                }
+
+                .logo-badge {
+                    padding: 8px;
+                }
+
+                .form-header h1 {
+                    font-size: 2.2rem;
+                    letter-spacing: -1px;
+                }
+
+                .form-header p {
+                    font-size: 0.95rem;
+                }
+            }
+
+            /* Keyframes */
+            @keyframes slowMovement {
+                0% {
+                    transform: scale(1.05) translate(0, 0);
+                }
+                100% {
+                    transform: scale(1.15) translate(-2%, -2%);
+                }
+            }
+
+            @keyframes slideUpIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px) scale(0.95);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                }
+            }
+
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(50px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            @keyframes fadeInDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            @keyframes wave {
+                0% {
+                    transform: rotate(0deg);
+                }
+                10% {
+                    transform: rotate(14deg);
+                }
+                20% {
+                    transform: rotate(-8deg);
+                }
+                30% {
+                    transform: rotate(14deg);
+                }
+                40% {
+                    transform: rotate(-4deg);
+                }
+                50% {
+                    transform: rotate(10deg);
+                }
+                60% {
+                    transform: rotate(0deg);
+                }
+                100% {
+                    transform: rotate(0deg);
+                }
+            }
+
+            .wave-emoji {
+                display: inline-block;
+                animation: wave 2s infinite;
+                transform-origin: 70% 70%;
+            }
+
+            .animate-welcome {
+                animation: slideUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                opacity: 0;
+            }
+
+            .animate-subtext {
+                animation: slideUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s
+                    forwards;
+                opacity: 0;
+            }
+
+            .input-group:nth-child(1) {
+                animation: slideUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s
+                    forwards;
+                opacity: 0;
+            }
+            .input-group:nth-child(2) {
+                animation: slideUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s
+                    forwards;
+                opacity: 0;
+            }
+            .submit-btn {
+                animation: slideUpIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s
+                    forwards;
+                opacity: 0;
+            }
+
+            /* Mensajes de Login Fluidos */
+            .login-message {
+                margin-top: 0;
+                padding: 0 10px;
+                font-size: 0.85rem;
+                font-weight: 500;
+                text-align: center;
+                opacity: 0;
+                max-height: 0;
+                overflow: hidden;
+                transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+
+            .login-message.visible {
+                margin-top: 15px;
+                padding: 10px;
+                max-height: 80px; /* Suficiente para un par de líneas */
+                opacity: 1;
+            }
+
+            .login-message.error {
+                color: var(--color-danger);
+            }
+
+            .login-message.success {
+                color: var(--color-success);
+            }
+        </style>
+
+        <script>
+            import { API_CONFIG, getApiUrl } from "@config/api";
+
+            // Lógica para el toggle de contraseña con cambio de icono dinámico
+            const passwordInput = document.getElementById(
+                "password",
+            ) as HTMLInputElement;
+            const toggleButton = document.getElementById("togglePassword");
+
+            toggleButton?.addEventListener("click", () => {
+                const isPassword =
+                    passwordInput.getAttribute("type") === "password";
+                passwordInput.setAttribute(
+                    "type",
+                    isPassword ? "text" : "password",
+                );
+
+                // Feedback visual simple
+                toggleButton.style.opacity = isPassword ? "1" : "0.5";
+            });
+
+            // Lógica de Autenticación Real
+            const loginBtn = document.getElementById(
+                "loginBtn",
+            ) as HTMLButtonElement;
+            const usernameInput = document.getElementById(
+                "username",
+            ) as HTMLInputElement;
+            const loginMessage = document.getElementById(
+                "loginMessage",
+            ) as HTMLDivElement;
+
+            const showMessage = (msg: string, type: "error" | "success") => {
+                if (!loginMessage) return;
+
+                // Si ya hay un mensaje, lo ocultamos primero para que el cambio de texto no sea brusco
+                if (
+                    loginMessage.classList.contains("visible") &&
+                    loginMessage.textContent !== msg
+                ) {
+                    loginMessage.classList.remove("visible");
+                    setTimeout(() => {
+                        loginMessage.textContent = msg;
+                        loginMessage.className = `login-message ${type} visible`;
+                    }, 200);
+                } else {
+                    loginMessage.textContent = msg;
+                    loginMessage.className = `login-message ${type} visible`;
+                }
+            };
+
+            const hideMessage = () => {
+                if (!loginMessage) return;
+                loginMessage.classList.remove("visible");
+            };
+
+            const handleLogin = async (e: Event) => {
+                e.preventDefault();
+                hideMessage();
+
+                const codigo = usernameInput.value.trim();
+                const clave = passwordInput.value.trim();
+
+                if (!codigo || !clave) {
+                    showMessage(
+                        "Por favor, ingresa tu código y contraseña.",
+                        "error",
+                    );
+                    return;
+                }
+
+                const originalBtnText = loginBtn.innerHTML;
+                loginBtn.innerHTML = "Autenticando...";
+                loginBtn.disabled = true;
+                loginBtn.style.opacity = "0.7";
+
+                // ── Usuarios admin locales (acceso sin backend) ──────────────
+                const ADMINS_LOCALES: Record<string, string> = {
+                    ADMIN: "MarioValle",
+                    MarioValle: "ADMIN",
+                };
+                const claveLocalAdmin = ADMINS_LOCALES[codigo];
+                if (claveLocalAdmin !== undefined) {
+                    if (clave !== claveLocalAdmin) {
+                        loginBtn.innerHTML = "Error";
+                        loginBtn.style.backgroundColor = "var(--color-danger)";
+                        showMessage(
+                            "Contraseña incorrecta para el usuario administrador.",
+                            "error",
+                        );
+                        setTimeout(() => {
+                            loginBtn.innerHTML = originalBtnText;
+                            loginBtn.style.backgroundColor = "#4cc253";
+                            loginBtn.disabled = false;
+                            loginBtn.style.opacity = "1";
+                        }, 3000);
+                        return;
+                    }
+                    const usuarioMock = {
+                        codigo,
+                        nombre: codigo,
+                        rol: "admin",
+                    };
+                    const tokenMock = `local_admin_${codigo}_${Date.now()}`;
+                    const exp = new Date(
+                        Date.now() + 8 * 60 * 60 * 1000,
+                    ).toUTCString();
+                    localStorage.setItem("user_token", tokenMock);
+                    localStorage.setItem(
+                        "user_data",
+                        JSON.stringify(usuarioMock),
+                    );
+                    document.cookie = `auth_token=${tokenMock}; path=/; expires=${exp}; SameSite=Strict`;
+                    document.cookie = `auth_usuario=${encodeURIComponent(JSON.stringify(usuarioMock))}; path=/; expires=${exp}; SameSite=Strict`;
+                    loginBtn.innerHTML = "¡Éxito!";
+                    loginBtn.style.backgroundColor = "var(--color-success)";
+                    showMessage("¡Bienvenido, administrador!", "success");
+                    setTimeout(() => {
+                        window.location.href = "/admin/rankings/operadores";
+                    }, 800);
+                    return;
+                }
+                // ─────────────────────────────────────────────────────────────
+
+                try {
+                    const response = await fetch(
+                        getApiUrl(API_CONFIG.ENDPOINTS.LOGIN),
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ codigo, clave }),
+                        },
+                    );
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        loginBtn.innerHTML = "¡Éxito!";
+                        loginBtn.style.backgroundColor = "var(--color-success)";
+                        showMessage("¡Inicio de sesión exitoso!", "success");
+
+                        // Guardar sesión en localStorage
+                        localStorage.setItem("user_token", data.access_token);
+                        localStorage.setItem(
+                            "user_data",
+                            JSON.stringify(data.usuario),
+                        );
+
+                        // Establecer cookies para el middleware del servidor
+                        // Expiración: 8 horas
+                        const expiracion = new Date(
+                            Date.now() + 8 * 60 * 60 * 1000,
+                        ).toUTCString();
+                        document.cookie = `auth_token=${data.access_token}; path=/; expires=${expiracion}; SameSite=Strict`;
+                        document.cookie = `auth_usuario=${encodeURIComponent(JSON.stringify(data.usuario))}; path=/; expires=${expiracion}; SameSite=Strict`;
+
+                        // Redirección inteligente según el rol
+                        const rol = data.usuario.rol || "operador";
+                        const esAdminCheck = rol === "admin";
+
+                        setTimeout(() => {
+                            if (esAdminCheck) {
+                                window.location.href =
+                                    "/admin/rankings/operadores";
+                            } else {
+                                window.location.href = "/operadores/desempeno";
+                            }
+                        }, 800);
+                    } else {
+                        throw new Error(
+                            data.message || "Credenciales inválidas",
+                        );
+                    }
+                } catch (error: any) {
+                    console.error("Error de login:", error);
+                    loginBtn.innerHTML = "Error";
+                    loginBtn.style.backgroundColor = "var(--color-danger)";
+
+                    showMessage(
+                        error.message || "Error: Verifica tus datos",
+                        "error",
+                    );
+
+                    setTimeout(() => {
+                        loginBtn.innerHTML = originalBtnText;
+                        loginBtn.style.backgroundColor = "#4cc253"; // Restaurar color original
+                        loginBtn.disabled = false;
+                        loginBtn.style.opacity = "1";
+                    }, 3000);
+                }
+            };
+
+            loginBtn?.addEventListener("click", handleLogin);
+        </script>
+    </body>
+</html>

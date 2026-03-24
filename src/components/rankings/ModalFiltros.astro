@@ -1,0 +1,901 @@
+---
+
+---
+
+<div id="modal-filtros" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="header-left">
+                <div class="header-icon-box">
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><circle cx="12" cy="12" r="3"></circle><path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                        ></path></svg
+                    >
+                </div>
+                <div class="header-titles">
+                    <h2>Filtros</h2>
+                    <p>Personaliza tu búsqueda</p>
+                </div>
+            </div>
+            <button class="close-modal" id="close-modal-btn">
+                <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    ><line x1="18" y1="6" x2="6" y2="18"></line><line
+                        x1="6"
+                        y1="6"
+                        x2="18"
+                        y2="18"></line></svg
+                >
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Estado de Actividad -->
+            <section class="filter-group">
+                <h3 class="group-title">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                        ></path><circle cx="9" cy="7" r="4"></circle><path
+                            d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path
+                            d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg
+                    >
+                    Estado de Actividad
+                </h3>
+                <div
+                    class="status-grid filter-options"
+                    data-filter-group="status"
+                >
+                    <button class="status-card active" data-value="all">
+                        <span class="card-left">
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                ><path
+                                    d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                                ></path><circle cx="9" cy="7" r="4"
+                                ></circle></svg
+                            >
+                            Todos
+                        </span>
+                        <span class="card-count" id="count-all">...</span>
+                    </button>
+                    <button class="status-card" data-value="active">
+                        <span class="card-left">
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                ><path
+                                    d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                                ></path><circle cx="8.5" cy="7" r="4"
+                                ></circle><polyline points="17 11 19 13 23 9"
+                                ></polyline></svg
+                            >
+                            Activos
+                        </span>
+                        <span class="card-count" id="count-active">...</span>
+                    </button>
+                    <button class="status-card" data-value="inactive">
+                        <span class="card-left">
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                ><path
+                                    d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                                ></path><circle cx="8.5" cy="7" r="4"
+                                ></circle><line x1="18" y1="9" x2="23" y2="14"
+                                ></line><line x1="23" y1="9" x2="18" y2="14"
+                                ></line></svg
+                            >
+                            Inactivos
+                        </span>
+                        <span class="card-count" id="count-inactive">...</span>
+                    </button>
+                    <button class="status-card" data-value="novelty">
+                        <span class="card-left">
+                            <svg
+                                width="18"
+                                height="18"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                ><circle cx="12" cy="12" r="10"></circle><line
+                                    x1="12"
+                                    y1="8"
+                                    x2="12"
+                                    y2="12"></line><line
+                                    x1="12"
+                                    y1="16"
+                                    x2="12.01"
+                                    y2="16"></line></svg
+                            >
+                            Con Novedad
+                        </span>
+                        <span class="card-count" id="count-novelty">0</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Cargo -->
+            <section class="filter-group">
+                <h3 class="group-title">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Cargo
+                </h3>
+                <div class="period-selectors">
+                    <select id="filter-cargo-select" class="filter-select">
+                        <option value="all">Todos los cargos</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Período de Tiempo -->
+            <section class="filter-group">
+                <h3 class="group-title">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        ><rect x="3" y="4" width="18" height="18" rx="2" ry="2"
+                        ></rect><line x1="16" y1="2" x2="16" y2="6"></line><line
+                            x1="8"
+                            y1="2"
+                            x2="8"
+                            y2="6"></line><line x1="3" y1="10" x2="21" y2="10"
+                        ></line></svg
+                    >
+                    Período de Tiempo
+                </h3>
+                <div
+                    class="button-group-row filter-options period-type-selector"
+                    data-filter-group="periodType"
+                >
+                    <button class="btn-toggle active" data-value="all"
+                        >Todos</button
+                    >
+                    <button class="btn-toggle" data-value="year">Año</button>
+                    <button class="btn-toggle" data-value="month">Mes</button>
+                </div>
+
+                <div class="period-selectors" id="period-selectors-container">
+                    <select
+                        id="filter-year-select"
+                        class="filter-select hidden"
+                    >
+                        <option value="2026" selected>2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                    </select>
+                    <select
+                        id="filter-month-select"
+                        class="filter-select hidden"
+                    >
+                        <option value="0">Enero</option>
+                        <option value="1">Febrero</option>
+                        <option value="2">Marzo</option>
+                        <option value="3">Abril</option>
+                        <option value="4">Mayo</option>
+                        <option value="5">Junio</option>
+                        <option value="6">Julio</option>
+                        <option value="7">Agosto</option>
+                        <option value="8">Septiembre</option>
+                        <option value="9">Octubre</option>
+                        <option value="10">Noviembre</option>
+                        <option value="11">Diciembre</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Ordenar Por -->
+            <section class="filter-group">
+                <h3 class="group-title">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        ><line x1="4" y1="21" x2="4" y2="14"></line><line
+                            x1="4"
+                            y1="10"
+                            x2="4"
+                            y2="3"></line><line x1="12" y1="21" x2="12" y2="12"
+                        ></line><line x1="12" y1="8" x2="12" y2="3"></line><line
+                            x1="20"
+                            y1="21"
+                            x2="20"
+                            y2="16"></line><line x1="20" y1="12" x2="20" y2="3"
+                        ></line><line x1="1" y1="14" x2="7" y2="14"></line><line
+                            x1="9"
+                            y1="8"
+                            x2="15"
+                            y2="19"></line><line x1="17" y1="16" x2="23" y2="16"
+                        ></line></svg
+                    >
+                    Ordenar Por
+                </h3>
+                <div
+                    class="button-group-row sort-options filter-options"
+                    data-filter-group="sort"
+                >
+                    <button class="btn-toggle active" data-value="ranking"
+                        >Ranking</button
+                    >
+                    <button class="btn-toggle" data-value="bonos">Bonos</button>
+                    <button class="btn-toggle" data-value="km"
+                        >Kilómetros</button
+                    >
+                    <button class="btn-toggle" data-value="eficiencia"
+                        >Eficiencia</button
+                    >
+                </div>
+                <div class="order-direction" data-filter-group="order">
+                    <button class="btn-order" data-value="desc"
+                        >Mayor a Menor ↓</button
+                    >
+                    <button
+                        class="btn-order active primary-dark"
+                        data-value="asc">Menor a Mayor ↑</button
+                    >
+                </div>
+            </section>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-reset" id="reset-modal-btn">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    ><path d="M23 4v6h-6"></path><path
+                        d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg
+                >
+                Restablecer
+            </button>
+            <div class="footer-actions">
+                <button
+                    class="btn-footer-secondary"
+                    id="cancel-modal-btn-footer">Cancelar</button
+                >
+                <button class="btn-footer-primary" id="apply-filters-btn">
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        ><polyline points="20 6 9 17 4 12"></polyline></svg
+                    >
+                    Aplicar Filtros
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    import { FiltroService, type FiltrosData } from "@services/FiltroService";
+
+    document.addEventListener("astro:page-load", () => {
+        const modal = document.getElementById("modal-filtros");
+        if (!modal) return;
+
+        const yearSelect = document.getElementById(
+            "filter-year-select",
+        ) as HTMLSelectElement;
+        const monthSelect = document.getElementById(
+            "filter-month-select",
+        ) as HTMLSelectElement;
+
+        const cargoSelect = document.getElementById(
+            "filter-cargo-select",
+        ) as HTMLSelectElement;
+
+        /**
+         * Inicializa la interfaz del modal basándose en el estado actual (URL)
+         */
+        const inicializarDesdeContexto = () => {
+            const filtros = FiltroService.obtenerDeUrl();
+
+            // 1. Estado de Actividad
+            const statusGroup = modal.querySelector(
+                '[data-filter-group="status"]',
+            );
+            statusGroup?.querySelectorAll("button").forEach((btn) => {
+                btn.classList.toggle(
+                    "active",
+                    btn.getAttribute("data-value") === filtros.estado,
+                );
+            });
+
+            // 2. Ordenar Por
+            const sortGroup = modal.querySelector('[data-filter-group="sort"]');
+            sortGroup?.querySelectorAll("button").forEach((btn) => {
+                btn.classList.toggle(
+                    "active",
+                    btn.getAttribute("data-value") === filtros.ordenar,
+                );
+            });
+
+            // 3. Dirección de Orden
+            const orderGroup = modal.querySelector(
+                '[data-filter-group="order"]',
+            );
+            orderGroup?.querySelectorAll("button").forEach((btn) => {
+                const isActive =
+                    btn.getAttribute("data-value") === filtros.direccion;
+                btn.classList.toggle("active", isActive);
+                btn.classList.toggle("primary-dark", isActive);
+            });
+
+            // 4. Período
+            const periodGroup = modal.querySelector(
+                '[data-filter-group="periodType"]',
+            );
+            periodGroup?.querySelectorAll("button").forEach((btn) => {
+                const isActive =
+                    btn.getAttribute("data-value") === filtros.periodo.tipo;
+                btn.classList.toggle("active", isActive);
+
+                if (isActive) {
+                    const val = filtros.periodo.tipo;
+                    if (val === "all") {
+                        yearSelect?.classList.add("hidden");
+                        monthSelect?.classList.add("hidden");
+                    } else if (val === "year") {
+                        yearSelect?.classList.remove("hidden");
+                        monthSelect?.classList.add("hidden");
+                    } else if (val === "month") {
+                        yearSelect?.classList.remove("hidden");
+                        monthSelect?.classList.remove("hidden");
+                    }
+                }
+            });
+
+            if (yearSelect) yearSelect.value = filtros.periodo.anio.toString();
+            if (monthSelect) monthSelect.value = filtros.periodo.mes.toString();
+            if (cargoSelect) cargoSelect.value = filtros.cargo;
+        };
+
+        // Escuchar cuando se abre el modal para sincronizar estado
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (
+                    mutation.type === "attributes" &&
+                    mutation.attributeName === "class"
+                ) {
+                    if (modal.classList.contains("open")) {
+                        inicializarDesdeContexto();
+                    }
+                }
+            });
+        });
+        observer.observe(modal, { attributes: true });
+
+        // --- Gestión de Selección Visual de Filtros (Toggle Active) ---
+        const filterGroups = modal.querySelectorAll("[data-filter-group]");
+        filterGroups.forEach((group) => {
+            const buttons = group.querySelectorAll("button");
+            buttons.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    buttons.forEach((b) =>
+                        b.classList.remove("active", "primary-dark"),
+                    );
+                    btn.classList.add("active");
+                    if (group.getAttribute("data-filter-group") === "order") {
+                        btn.classList.add("primary-dark");
+                    }
+
+                    // Lógica especial para mostrar/ocultar selectores de periodo al hacer click
+                    if (
+                        group.getAttribute("data-filter-group") === "periodType"
+                    ) {
+                        const val = btn.getAttribute("data-value");
+                        yearSelect?.classList.toggle("hidden", val === "all");
+                        monthSelect?.classList.toggle(
+                            "hidden",
+                            val !== "month",
+                        );
+                    }
+                });
+            });
+        });
+
+        // --- Botón Aplicar ---
+        const applyBtn = document.getElementById("apply-filters-btn");
+        applyBtn?.addEventListener("click", () => {
+            const periodType = modal
+                .querySelector('[data-filter-group="periodType"] .active')
+                ?.getAttribute("data-value") as any;
+
+            const nuevosFiltros: Partial<FiltrosData> = {
+                estado: (modal
+                    .querySelector('[data-filter-group="status"] .active')
+                    ?.getAttribute("data-value") || "all") as any,
+                cargo: cargoSelect?.value || "all",
+                ordenar: (modal
+                    .querySelector('[data-filter-group="sort"] .active')
+                    ?.getAttribute("data-value") || "ranking") as any,
+                direccion: (modal
+                    .querySelector('[data-filter-group="order"] .active')
+                    ?.getAttribute("data-value") || "asc") as any,
+                periodo: {
+                    tipo: periodType,
+                    anio: parseInt(yearSelect?.value || "2025"),
+                    mes:
+                        periodType === "month"
+                            ? parseInt(monthSelect?.value || "-1")
+                            : -1,
+                },
+            };
+
+            // Emitir evento personalizado
+            const event = new CustomEvent("applyFilters", {
+                detail: nuevosFiltros,
+            });
+            document.dispatchEvent(event);
+
+            // Cerrar modal
+            const closeBtn = document.getElementById("close-modal-btn");
+            closeBtn?.click();
+        });
+
+        // --- Botón Restablecer ---
+        const resetBtn = document.getElementById("reset-modal-btn");
+        resetBtn?.addEventListener("click", () => {
+            const defaultFilters = {
+                estado: "all",
+                cargo: "all",
+                ordenar: "ranking",
+                direccion: "asc",
+                periodo: { tipo: "all", anio: 2025, mes: -1 },
+            };
+
+            const event = new CustomEvent("applyFilters", {
+                detail: defaultFilters,
+            });
+            document.dispatchEvent(event);
+
+            const closeBtn = document.getElementById("close-modal-btn");
+            closeBtn?.click();
+        });
+
+        // --- Botón Cancelar (Footer) ---
+        const cancelBtnFooter = document.getElementById(
+            "cancel-modal-btn-footer",
+        );
+        cancelBtnFooter?.addEventListener("click", () => {
+            const closeBtn = document.getElementById("close-modal-btn");
+            closeBtn?.click();
+        });
+    });
+
+    // Escuchar evento para actualizar conteos (desde el padre)
+    document.addEventListener("updateFilterCounts", ((e: CustomEvent) => {
+        const counts = e.detail;
+        const setTxt = (id: string, val: any) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+        if (counts) {
+            setTxt("count-all", counts.all || 0);
+            setTxt("count-active", counts.active || 0);
+            setTxt("count-inactive", counts.inactive || 0);
+            setTxt("count-novelty", counts.novelty || 0);
+        }
+    }) as EventListener);
+    // Escuchar evento para cargar cargos disponibles
+    document.addEventListener("cargosLoaded", ((e: CustomEvent) => {
+        const cargos = e.detail || [];
+        const cargoSelect = document.getElementById("filter-cargo-select") as HTMLSelectElement;
+        if (!cargoSelect) return;
+        
+        // Guardar el valor actual
+        const currentValue = cargoSelect.value;
+        
+        // Limpiar y agregar opción "Todos"
+        cargoSelect.innerHTML = '<option value="all">Todos los cargos</option>';
+        
+        // Agregar nuevos cargos
+        cargos.forEach((cargo: string) => {
+            const option = document.createElement("option");
+            option.value = cargo;
+            option.textContent = cargo;
+            cargoSelect.appendChild(option);
+        });
+        
+        // Restaurar valor anterior si existe en la nueva lista
+        if (currentValue !== "all" && cargos.includes(currentValue)) {
+            cargoSelect.value = currentValue;
+        }
+    }) as EventListener);
+</script>
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(8px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .modal-overlay.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        background: white;
+        width: 100%;
+        max-width: 650px;
+        border-radius: 28px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        transform: scale(0.9) translateY(20px);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .modal-overlay.open .modal-content {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    .modal-header {
+        padding: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .header-icon-box {
+        width: 44px;
+        height: 44px;
+        background: var(--color-primario);
+        color: white;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: var(--sombra-primaria);
+    }
+
+    .header-titles h2 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--color-texto-dark);
+    }
+
+    .header-titles p {
+        font-size: 0.85rem;
+        color: var(--color-texto-grey);
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        color: var(--color-texto-grey);
+        cursor: pointer;
+        padding: 5px;
+        transition: all 0.2s;
+    }
+
+    .close-modal:hover {
+        color: var(--color-danger);
+        transform: rotate(90deg);
+    }
+
+    .modal-body {
+        padding: 24px;
+    }
+
+    .filter-group {
+        margin-bottom: 25px;
+    }
+
+    .group-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--color-texto-dark);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .status-card {
+        background: white;
+        border: 1px solid #eef2f3;
+        padding: 12px 16px;
+        border-radius: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.25s;
+    }
+
+    .status-card:hover {
+        background: #f8fafb;
+        border-color: var(--color-primario);
+        transform: translateY(-2px);
+    }
+
+    .status-card.active {
+        border-color: var(--color-primario);
+        background: var(--color-primario-soft);
+    }
+
+    .card-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .status-card.active .card-left {
+        color: var(--color-primario);
+    }
+
+    .card-count {
+        font-size: 0.8rem;
+        font-weight: 700;
+        background: #f0f3f5;
+        padding: 2px 8px;
+        border-radius: 8px;
+        color: var(--color-texto-dark);
+    }
+
+    .button-group-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: transparent;
+        padding: 0;
+        width: 100%;
+    }
+
+    .btn-toggle {
+        flex: 1;
+        padding: 10px 16px;
+        border: none;
+        background: #f8fafb;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #1e293b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .btn-toggle.active {
+        background: #4ade80; /* Verde más brillante como en la imagen */
+        color: white;
+        box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
+    }
+    
+    .btn-toggle:not(.active):hover {
+        background: #e2e8f0;
+        transform: translateY(-1px);
+    }
+
+    /* Ajuste para Order Direction también */
+    .order-direction {
+        display: flex;
+        gap: 12px;
+        margin-top: 15px;
+    }
+
+    .btn-order {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        background: white;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+
+    .btn-order.active {
+        background: var(--color-primario);
+        color: white;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+    }
+
+    .btn-order.primary-dark {
+        background: #1e293b;
+        color: white;
+        box-shadow: 0 4px 12px rgba(30, 41, 59, 0.25);
+    }
+
+    .modal-footer {
+        padding: 20px 24px;
+        background: #fcfdfe;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .btn-reset {
+        background: none;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--color-texto-grey);
+        font-weight: 600;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .btn-reset:hover {
+        color: var(--color-primario);
+    }
+
+    .footer-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-footer-secondary {
+        padding: 10px 20px;
+        background: white;
+        border: 1px solid #eef2f3;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-footer-secondary:hover {
+        background: #f8fafb;
+    }
+
+    .btn-footer-primary {
+        padding: 10px 24px;
+        background: var(--color-primario);
+        border: none;
+        color: white;
+        border-radius: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        box-shadow: var(--sombra-primaria);
+        transition: all 0.25s;
+    }
+
+    .btn-footer-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0px 10px 20px -5px rgba(var(--vs-primary-raw), 0.5);
+    }
+
+    .period-selectors {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .filter-select {
+        flex: 1;
+        padding: 12px 16px;
+        border-radius: 14px;
+        border: 1px solid #eef2f3;
+        background: #f8fafb;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--color-texto-dark);
+        cursor: pointer;
+        transition: all 0.2s;
+        outline: none;
+    }
+
+    .filter-select:focus {
+        border-color: var(--color-primario);
+        background: white;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    @media (max-width: 480px) {
+        .status-grid {
+            grid-template-columns: 1fr;
+        }
+        .order-direction {
+            flex-direction: column;
+        }
+        .footer-actions {
+            width: 100%;
+            flex-direction: column-reverse;
+        }
+        .modal-footer {
+            flex-direction: column;
+            gap: 15px;
+        }
+    }
+</style>

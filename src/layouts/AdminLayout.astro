@@ -1,0 +1,52 @@
+---
+import "../styles/global.css";
+import Sidebar from "@components/layout/Sidebar.astro";
+import { ViewTransitions } from "astro:transitions";
+
+interface Props {
+    titulo: string;
+}
+
+const { titulo } = Astro.props;
+---
+
+<html lang="es">
+    <head>
+        <meta charset="utf-8" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="viewport" content="width=device-width" />
+        <title>{titulo} | SAO6</title>
+        <ViewTransitions />
+    </head>
+    <body>
+        <div class="admin-container">
+            <Sidebar />
+
+            <main class="main-content">
+                <slot />
+            </main>
+        </div>
+
+        <style>
+            .admin-container {
+                display: flex;
+                min-height: 100vh;
+            }
+
+            .main-content {
+                flex: 1;
+                padding: 30px;
+                background-color: var(--color-fondo-app);
+                overflow-y: auto;
+                margin-left: 280px; /* Compensar sidebar fijo */
+            }
+
+            @media (max-width: 768px) {
+                .main-content {
+                    padding: 15px;
+                    margin-left: 0;
+                }
+            }
+        </style>
+    </body>
+</html>

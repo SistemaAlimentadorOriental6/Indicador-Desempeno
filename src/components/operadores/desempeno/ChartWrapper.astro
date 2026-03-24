@@ -1,0 +1,33 @@
+---
+interface Props {
+    id: string;
+    height?: string;
+}
+
+const { id, height = "220px" } = Astro.props;
+---
+
+<div class="chart-wrapper">
+    <canvas id={id}></canvas>
+</div>
+
+<style>
+    .chart-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+        height: var(--chart-height, 220px);
+    }
+
+    canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    @media (max-width: 768px) {
+        .chart-wrapper {
+            height: 160px !important;
+        }
+    }
+</style>

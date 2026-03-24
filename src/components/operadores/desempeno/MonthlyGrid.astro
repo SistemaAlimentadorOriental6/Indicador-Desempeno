@@ -1,0 +1,135 @@
+---
+import Icon from "@components/ui/Icon.astro";
+
+interface Month {
+    name: string;
+    value: string;
+    sub?: string;
+    color?: string;
+    info?: boolean;
+}
+
+interface Props {
+    months: Month[];
+}
+
+const { months } = Astro.props;
+---
+
+<div class="months-grid">
+    {
+        months.map((m) => (
+            <div class={`month-item ${m.color || ""}`}>
+                <span class="m-name">{m.name}</span>
+                <span class="m-val">{m.value}</span>
+                {m.sub && <span class="m-sub">{m.sub}</span>}
+                {m.info && (
+                    <div class="info-dot">
+                        <Icon name="check" size={6} color="white" />
+                    </div>
+                )}
+            </div>
+        ))
+    }
+</div>
+
+<style>
+    .months-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 30px;
+    }
+    .month-item {
+        background: #f8fafc;
+        padding: 14px 8px;
+        border-radius: 16px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        position: relative;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+    .month-item:hover {
+        background: white;
+        border-color: #f1f5f9;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        transform: translateY(-2px);
+    }
+
+    .month-item.success {
+        background: #f0fdf4;
+        border-color: #dcfce7;
+    }
+    .month-item.danger {
+        background: #fef2f2;
+        border-color: #fee2e2;
+    }
+    .month-item.warning {
+        background: #fffbeb;
+        border-color: #fef3c7;
+    }
+
+    .m-name {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #94bc94;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .month-item.danger .m-name {
+        color: #f87171;
+    }
+    .month-item.warning .m-name {
+        color: #fbbf24;
+    }
+    .month-item.success .m-name {
+        color: #34d399;
+    }
+
+    .m-val {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: #1e293b;
+    }
+    .m-sub {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #94a3b8;
+    }
+
+    .info-dot {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 14px;
+        height: 14px;
+        background: var(--color-success);
+        border: 2px solid white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 641px) {
+        .months-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .month-item {
+            padding: 12px 10px;
+            text-align: center;
+        }
+        .m-val {
+            font-size: 1rem;
+        }
+        .info-dot {
+            top: 4px;
+            right: 4px;
+        }
+    }
+</style>

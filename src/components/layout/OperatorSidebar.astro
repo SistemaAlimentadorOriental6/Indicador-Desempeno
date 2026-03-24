@@ -1,0 +1,638 @@
+---
+import Icon from "@components/ui/Icon.astro";
+---
+
+<aside class="operator-sidebar">
+    <!-- Header: Logo & Fecha -->
+    <div class="sidebar-header">
+        <div class="brand-section">
+            <div class="logo-box">
+                <img
+                    src="/LOGOSAO6.svg"
+                    alt="SAO6 Logo"
+                    class="sidebar-logo-img"
+                />
+            </div>
+            <div class="brand-info">
+                <span class="brand-name">SAO6</span>
+                <span class="brand-tag">Sistema de Gestión</span>
+            </div>
+        </div>
+
+        <div class="date-badge">
+            <Icon name="activity" size={14} color="var(--color-texto-grey)" />
+            <span>27 de enero de 2026</span>
+        </div>
+    </div>
+
+    <!-- Perfil del Operador -->
+    <div class="profile-card">
+        <div class="avatar-container">
+            <div class="avatar-ring">
+                <img
+                    src="https://i.pravatar.cc/150?u=rosmy"
+                    alt="ROSMY CALLEJAS PELAEZ"
+                    class="avatar-img"
+                />
+                <div class="status-dot"></div>
+            </div>
+        </div>
+
+        <div class="profile-main">
+            <h3>ROSMY CALLEJAS PELAEZ</h3>
+            <span class="badge-role">Cargo no especificado</span>
+        </div>
+
+        <div class="profile-details">
+            <!-- Zona -->
+            <div class="detail-item">
+                <div class="icon-wrapper">
+                    <Icon
+                        name="map-pin"
+                        size={16}
+                        color="var(--color-primario)"
+                    />
+                </div>
+                <div class="info-box">
+                    <span class="label-text">Zona Asignada</span>
+                    <p class="value-text detail-value">Zona no especificada</p>
+                </div>
+            </div>
+
+            <!-- Código y Cédula en Grid -->
+            <div class="detail-row-grid">
+                <div class="detail-item">
+                    <div class="icon-wrapper">
+                        <Icon
+                            name="activity"
+                            size={16}
+                            color="var(--color-primario)"
+                        />
+                    </div>
+                    <div class="info-box">
+                        <span class="label-text">Código</span>
+                        <p class="value-text">0025</p>
+                    </div>
+                </div>
+                <div class="detail-item">
+                    <div class="icon-wrapper">
+                        <Icon
+                            name="id-card"
+                            size={16}
+                            color="var(--color-primario)"
+                        />
+                    </div>
+                    <div class="info-box">
+                        <span class="label-text">Cédula</span>
+                        <p class="value-text">71687143</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Padrino -->
+            <div class="detail-item">
+                <div class="icon-wrapper">
+                    <Icon
+                        name="users"
+                        size={16}
+                        color="var(--color-primario)"
+                    />
+                </div>
+                <div class="info-box">
+                    <span class="label-text">Padrino Asignado</span>
+                    <p class="value-text detail-value">Padrino no asignado</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer: Cerrar Sesión -->
+    <div class="sidebar-footer">
+        <button class="btn-logout" id="trigger-logout">
+            <Icon name="activity" size={20} color="var(--color-texto-grey)" />
+            <span>Cerrar Sesión</span>
+        </button>
+    </div>
+</aside>
+
+<!-- Modal de Confirmación de Cierre de Sesión (Fuera del aside para evitar problemas de stack) -->
+<div class="logout-modal-overlay" id="logout-modal">
+    <div class="logout-modal-content">
+        <div class="modal-icon">
+            <Icon name="activity" size={32} color="#ef4444" />
+        </div>
+        <h2>¿Cerrar Sesión?</h2>
+        <p>
+            Tu sesión actual terminará y deberás ingresar tus datos nuevamente
+            para acceder.
+        </p>
+        <div class="modal-actions">
+            <button class="btn-cancel" id="btn-cancel-logout">Volver</button>
+            <a href="/login" class="btn-confirm">Cerrar Sesión</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("astro:page-load", () => {
+        // ── Cargar datos del usuario ──────────────────────────────────────
+        const userDataStr = localStorage.getItem("user_data");
+        if (userDataStr) {
+            try {
+                const user = JSON.parse(userDataStr);
+
+                const nameEl     = document.querySelector(".profile-main h3");
+                const roleEl     = document.querySelector(".badge-role");
+                const avatarEl   = document.querySelector(".avatar-img") as HTMLImageElement;
+
+                // Zona: primer .detail-value
+                const detailValues  = document.querySelectorAll(".detail-value");
+                const zoneEl        = detailValues[0];
+                const godfatherEl   = detailValues[1];
+
+                // Código y Cédula: .value-text dentro de .detail-row-grid
+                const gridValues = document.querySelectorAll(".detail-row-grid .value-text");
+                const codeEl  = gridValues[0];
+                const cedEl   = gridValues[1];
+
+                // Fecha actual dinámica
+                const dateEl = document.querySelector(".date-badge span");
+                if (dateEl) {
+                    const ahora = new Date();
+                    const opciones: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" };
+                    dateEl.textContent = ahora.toLocaleDateString("es-CO", opciones);
+                }
+
+                if (nameEl)    nameEl.textContent = user.nombre || user.codigo || "Usuario";
+                if (roleEl)    roleEl.textContent = user.f_desc_cargo || user.cargo || "Operador";
+                if (codeEl)    codeEl.textContent = user.codigo || "----";
+                if (cedEl)     cedEl.textContent  = user.cedula || "----";
+                if (zoneEl)    zoneEl.textContent  = user.zona || "No asignada";
+                if (godfatherEl) godfatherEl.textContent = user.padrino || "No asignado";
+
+                // Avatar: usar inicial si no hay foto
+                if (avatarEl) {
+                    if (user.foto) {
+                        avatarEl.src = user.foto;
+                        avatarEl.alt = user.nombre;
+                    } else {
+                        // Reemplazar img por div de inicial
+                        const ring = avatarEl.parentElement;
+                        if (ring) {
+                            const inicial = (user.nombre || user.codigo || "U").charAt(0).toUpperCase();
+                            const dot = ring.querySelector(".status-dot");
+                            avatarEl.style.display = "none";
+                            const initialsDiv = document.createElement("div");
+                            initialsDiv.className = "avatar-initials";
+                            initialsDiv.textContent = inicial;
+                            ring.insertBefore(initialsDiv, dot);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Error al cargar datos del usuario en sidebar", e);
+            }
+        }
+
+        // ── Botón Cerrar Sesión: mostrar modal ───────────────────────────
+        const logoutBtn   = document.getElementById("trigger-logout");
+        const logoutModal = document.getElementById("logout-modal");
+        const cancelBtn   = document.getElementById("btn-cancel-logout");
+        const confirmBtn  = document.querySelector(".btn-confirm");
+
+        logoutBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            logoutModal?.classList.add("active");
+        });
+
+        cancelBtn?.addEventListener("click", () => {
+            logoutModal?.classList.remove("active");
+        });
+
+        // Al confirmar: limpiar sesión y redirigir
+        confirmBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            localStorage.removeItem("user_token");
+            localStorage.removeItem("user_data");
+            const pasado = "Thu, 01 Jan 1970 00:00:00 GMT";
+            document.cookie = `auth_token=; path=/; expires=${pasado}; SameSite=Strict`;
+            document.cookie = `auth_usuario=; path=/; expires=${pasado}; SameSite=Strict`;
+            window.location.href = "/login";
+        });
+
+        // Scroll del sidebar
+        const sidebar = document.querySelector(".operator-sidebar");
+        window.addEventListener("scroll", () => {
+            sidebar?.classList.toggle("scrolled", window.scrollY > 20);
+        });
+    });
+</script>
+
+<style>
+    /* --- DISTRIBUCIÓN Y ORDEN --- */
+    .operator-sidebar {
+        width: 300px; /* Un poco más de aire para la distribución */
+        background: #fdfdfd;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 45px 30px;
+        border-right: 1px solid rgba(0, 0, 0, 0.04);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    /* Header: Refinado */
+    .sidebar-header {
+        margin-bottom: 50px;
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+
+    .brand-section {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .logo-box {
+        width: 44px;
+        height: 44px;
+        background: var(--color-primario);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 16px rgba(var(--vs-primary-raw), 0.15);
+    }
+
+    .sidebar-logo-img {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+    }
+
+    .brand-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .brand-name {
+        font-weight: 800;
+        font-size: 1.4rem;
+        color: #0f172a;
+        line-height: 1.1;
+        letter-spacing: -0.5px;
+    }
+
+    .brand-tag {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+
+    .date-badge {
+        background: #f8fafc;
+        padding: 10px 16px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #64748b;
+        border: 1px solid #f1f5f9;
+        max-width: fit-content;
+    }
+
+    /* Perfil: Distribución Balanceada */
+    .profile-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    .avatar-container {
+        margin-bottom: 20px;
+    }
+
+    .avatar-ring {
+        position: relative;
+        width: 120px; /* Tamaño más equilibrado para el sidebar */
+        height: 120px;
+        border-radius: 50%;
+        background: white;
+        padding: 4px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+    }
+
+    .avatar-img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .avatar-initials {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--color-primario), #22c55e);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: white;
+        letter-spacing: -1px;
+    }
+
+    .status-dot {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 20px;
+        height: 20px;
+        background: var(--color-success);
+        border: 3px solid #fdfdfd;
+        border-radius: 50%;
+    }
+
+    .profile-main {
+        text-align: center;
+        margin-bottom: 35px;
+    }
+
+    .profile-main h3 {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 6px;
+        line-height: 1.2;
+    }
+
+    .badge-role {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--color-primario);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        opacity: 0.8;
+    }
+
+    /* Información de Perfil: Listado Ordenado */
+    .profile-details {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 22px; /* Espaciado entre items consistente */
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .icon-wrapper {
+        width: 32px;
+        height: 32px;
+        background: #f8fafc;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: 1px solid #f1f5f9;
+    }
+
+    .info-box {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .label-text {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .value-text {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
+        line-height: 1.3;
+    }
+
+    /* Especial para Código y Cédula en una línea */
+    .detail-row-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        width: 100%;
+    }
+
+    /* Footer: Botón Limpio */
+    .sidebar-footer {
+        margin-top: auto;
+        padding-top: 30px;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .btn-logout {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 14px;
+    }
+
+    .btn-logout:hover {
+        background: #fff5f5;
+        color: #ef4444;
+        padding-left: 18px; /* Pequeño desplazamiento de feedback */
+    }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 768px) {
+        .operator-sidebar {
+            width: 100%;
+            height: auto;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            flex-direction: column;
+            background: white;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .sidebar-header {
+            margin-bottom: 0px;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .date-badge,
+        .profile-details,
+        .sidebar-footer {
+            display: none;
+        }
+
+        .profile-card {
+            flex-direction: row;
+            border-top: 1px solid #f1f5f9;
+            margin-top: 10px;
+            padding-top: 15px;
+            justify-content: flex-start;
+            gap: 15px;
+        }
+
+        .avatar-ring {
+            width: 50px;
+            height: 50px;
+            padding: 2px;
+        }
+
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            border-width: 2px;
+        }
+
+        .profile-main {
+            text-align: left;
+            margin-bottom: 0;
+        }
+
+        .profile-main h3 {
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+        }
+
+        .badge-role {
+            font-size: 0.65rem;
+        }
+    }
+
+    /* Modal de Logout Styles */
+    .logout-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000; /* Por encima de todo */
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        padding: 20px;
+    }
+
+    .logout-modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .logout-modal-content {
+        background: white;
+        padding: 40px 30px;
+        border-radius: 32px;
+        width: 100%;
+        max-width: 380px;
+        text-align: center;
+        box-shadow: 0 30px 70px -12px rgba(0, 0, 0, 0.2);
+        transform: translateY(20px) scale(0.95);
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        border: 1px solid rgba(0, 0, 0, 0.03);
+    }
+
+    .logout-modal-overlay.active .logout-modal-content {
+        transform: translateY(0) scale(1);
+    }
+
+    .modal-icon {
+        width: 64px;
+        height: 64px;
+        background: #fee2e2;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+    }
+
+    .logout-modal-content h2 {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 12px;
+    }
+
+    .logout-modal-content p {
+        color: #64748b;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+
+    .modal-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .btn-confirm {
+        background: #ef4444;
+        color: white;
+        padding: 16px;
+        border-radius: 16px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-confirm:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+    }
+
+    .btn-cancel {
+        background: #f1f5f9;
+        color: #64748b;
+        border: none;
+        padding: 16px;
+        border-radius: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-cancel:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+</style>

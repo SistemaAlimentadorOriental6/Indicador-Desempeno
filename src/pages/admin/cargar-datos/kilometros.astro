@@ -1,0 +1,42 @@
+---
+import AdminLayout from "@layouts/AdminLayout.astro";
+import DataUploadCard from "@components/admin/DataUploadCard.astro";
+---
+
+<AdminLayout titulo="Cargue de Kilómetros">
+    <div class="page-container-full">
+        <div class="content-section-full">
+            <DataUploadCard
+                title="Cargue de Kilómetros"
+                description="Sube el archivo Excel con los datos de programación y ejecución de kilómetros por operador."
+                endpoint="carga-datos/kilometros"
+                icon="km"
+            />
+        </div>
+    </div>
+</AdminLayout>
+
+<style>
+    .page-container-full {
+        padding: 20px;
+        width: 100%;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .content-section-full {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+</style>

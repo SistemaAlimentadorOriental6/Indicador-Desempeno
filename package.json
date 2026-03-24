@@ -1,0 +1,19 @@
+{
+  "name": "indicador-desempeno-sao6",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.11.2",
+    "astro": "^6.0.8",
+    "chart.js": "^4.5.1"
+  },
+  "devDependencies": {
+    "@astrojs/node": "^10.0.3"
+  }
+}

@@ -1,0 +1,544 @@
+---
+interface Props {
+    title: string;
+    description: string;
+    endpoint: string;
+    icon: string;
+}
+
+const { title, description, endpoint, icon } = Astro.props;
+---
+
+<div class="dropzone-full-card">
+    <div class="dropzone-body">
+        <!-- Area de Drop -->
+        <div class="drop-area-premium" id="drop-area">
+            <input type="file" id="file-input" accept=".xlsx, .xls" hidden />
+            <div class="drop-inner-content">
+                <div class="upload-icon-box">
+                    <svg
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="var(--color-primario)"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                        ></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <p class="drop-main-text">
+                    Arrastra y suelta o <span class="browse-link-highlight"
+                        >Explora</span
+                    > para subir
+                </p>
+                <p class="drop-sub-text">Formatos soportados: xls, xlsx</p>
+            </div>
+        </div>
+
+        <!-- Enlace de Descarga -->
+        <div class="template-download-row">
+            <div class="template-icon">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--color-primario)"
+                    stroke-width="2.5"
+                >
+                    <path
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    ></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+            </div>
+            <a href="#" class="download-anchor"
+                >Descargar plantilla de ejemplo</a
+            >
+        </div>
+
+        <!-- Lista de Archivos Cargados -->
+        <div class="file-list-container" id="file-list">
+            <!-- Template dinámico -->
+            <div class="file-card-item hidden" id="file-template">
+                <div class="file-leading-icon">
+                    <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="var(--color-primario)"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                        ></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                </div>
+                <div class="file-content-main">
+                    <div class="file-top-details">
+                        <span class="file-display-name">archivo.xlsx</span>
+                        <button
+                            class="remove-file-action"
+                            title="Quitar archivo"
+                        >
+                            <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="3"
+                            >
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="file-metadata-row">
+                        Fecha: --- • Tamaño: 0 MB
+                    </div>
+
+                    <div class="progress-wrapper" id="progress-wrapper">
+                        <div class="progress-track-premium">
+                            <div
+                                class="progress-bar-fill-dynamic"
+                                id="bar-fill"
+                            >
+                            </div>
+                        </div>
+                        <span
+                            class="progress-percentage-label"
+                            id="percent-label">0%</span
+                        >
+                    </div>
+
+                    <div
+                        class="status-indicator success hidden"
+                        id="status-success"
+                    >
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="3"
+                            ><polyline points="20 6 9 17 4 12"></polyline></svg
+                        >
+                        <span>Carga completada exitosamente</span>
+                    </div>
+                    <div
+                        class="status-indicator error hidden"
+                        id="status-error"
+                    >
+                        <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="3"
+                            ><line x1="18" y1="6" x2="6" y2="18"></line><line
+                                x1="6"
+                                y1="6"
+                                x2="18"
+                                y2="18"></line></svg
+                        >
+                        <span class="error-text">Fallo en la carga</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones Finales -->
+    <div class="dropzone-actions-footer">
+        <button class="btn-action-primary-full" id="btn-upload" disabled>
+            <span class="btn-text">Cargar archivo</span>
+            <div class="btn-spinner hidden" id="btn-loader"></div>
+        </button>
+    </div>
+</div>
+
+<script define:vars={{ endpoint }}>
+    const dropArea = document.getElementById("drop-area");
+    const fileInput = document.getElementById("file-input");
+    const fileList = document.getElementById("file-list");
+    const fileTemplate = document.getElementById("file-template");
+    const btnUpload = document.getElementById("btn-upload");
+
+    let selectedFile = null;
+
+    dropArea.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", (e) => {
+        if (e.target.files.length > 0) handleFileSelection(e.target.files[0]);
+    });
+
+    dropArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropArea.classList.add("drag-active");
+    });
+    dropArea.addEventListener("dragleave", () =>
+        dropArea.classList.remove("drag-active"),
+    );
+    dropArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropArea.classList.remove("drag-active");
+        if (e.dataTransfer.files.length > 0)
+            handleFileSelection(e.dataTransfer.files[0]);
+    });
+
+    function handleFileSelection(file) {
+        selectedFile = file;
+        fileList.innerHTML = "";
+        const item = fileTemplate.cloneNode(true);
+        item.classList.remove("hidden");
+        item.id = "active-file-item";
+        item.querySelector(".file-display-name").textContent = file.name;
+        item.querySelector(".file-metadata-row").textContent =
+            `Fecha: ${new Date().toLocaleDateString()} • Tamaño: ${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+        fileList.appendChild(item);
+        btnUpload.disabled = false;
+        item.querySelector(".remove-file-action").onclick = () =>
+            resetComponent();
+    }
+
+    btnUpload.onclick = async () => {
+        if (!selectedFile) return;
+        const item = document.getElementById("active-file-item");
+        const bar = item.querySelector("#bar-fill");
+        const label = item.querySelector("#percent-label");
+        const progressWrapper = item.querySelector("#progress-wrapper");
+        const successTag = item.querySelector("#status-success");
+        const errorTag = item.querySelector("#status-error");
+        btnUpload.disabled = true;
+        const formData = new FormData();
+        formData.append("archivo", selectedFile);
+        try {
+            let progress = 0;
+            const stepTimer = setInterval(() => {
+                progress += 4;
+                if (progress <= 94) {
+                    bar.style.width = `${progress}%`;
+                    label.textContent = `${progress}%`;
+                }
+            }, 70);
+            const res = await fetch(`http://localhost:3001/api/${endpoint}`, {
+                method: "POST",
+                body: formData,
+            });
+            clearInterval(stepTimer);
+            const data = (await res.ok) ? await res.json() : null;
+            if (res.ok) {
+                bar.style.width = "100%";
+                label.textContent = "100%";
+                setTimeout(() => {
+                    progressWrapper.classList.add("hidden");
+                    successTag.classList.remove("hidden");
+
+                    // Mostrar resumen detallado
+                    const successSpan = successTag.querySelector("span");
+                    if (data && successSpan) {
+                        const esDuplicadoTotal =
+                            data.detalles &&
+                            data.detalles.procesados === 0 &&
+                            data.detalles.duplicados > 0;
+
+                        if (esDuplicadoTotal) {
+                            successTag.classList.remove("success");
+                            successTag.classList.add("warning");
+                            successSpan.innerHTML = `<strong>No se realizaron cambios</strong><br/><small style="opacity: 0.8">Los ${data.detalles.duplicados} registros ya existen en el sistema.</small>`;
+                        } else {
+                            successTag.classList.remove("warning");
+                            successTag.classList.add("success");
+                            successSpan.innerHTML = `<strong>${data.mensaje}</strong><br/><small style="opacity: 0.8">${data.resumen}</small>`;
+                        }
+                    }
+                }, 400);
+            } else {
+                bar.style.background = "var(--color-danger)";
+                progressWrapper.classList.add("hidden");
+                errorTag.classList.remove("hidden");
+                const errData = await res
+                    .json()
+                    .catch(() => ({ message: "Error en la validación" }));
+                errorTag.querySelector(".error-text").textContent =
+                    errData.message || "Error en la validación";
+            }
+        } catch (e) {
+            bar.style.background = "var(--color-danger)";
+            errorTag.classList.remove("hidden");
+            errorTag.querySelector(".error-text").textContent =
+                "Error de conexión";
+        }
+    };
+
+    function resetComponent() {
+        selectedFile = null;
+        fileInput.value = "";
+        fileList.innerHTML = "";
+        btnUpload.disabled = true;
+    }
+</script>
+
+<style>
+    .dropzone-full-card {
+        background: white;
+        border-radius: var(--radio-lg, 24px);
+        box-shadow: var(--sombra-suave);
+        width: 100%;
+        min-height: 60vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .dropzone-body {
+        padding: 40px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .drop-area-premium {
+        border: 2.5px dashed var(--color-primario-soft);
+        border-radius: var(--radio-lg, 24px);
+        padding: 80px 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: var(--color-fondo-soft);
+        margin-bottom: 32px;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .drop-inner-content {
+        max-width: 400px;
+    }
+
+    .drop-area-premium:hover,
+    .drop-area-premium.drag-active {
+        border-color: var(--color-primario);
+        background: white;
+        box-shadow: var(--sombra-primaria-soft);
+        transform: scale(1.01);
+    }
+
+    .upload-icon-box {
+        width: 70px;
+        height: 70px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        box-shadow: var(--sombra-suave);
+    }
+
+    .drop-main-text {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--color-texto-dark);
+        margin: 0 0 12px;
+    }
+
+    .browse-link-highlight {
+        color: var(--color-primario);
+        text-decoration: none;
+        box-shadow: inset 0 -2px 0 var(--color-primario-soft);
+    }
+
+    .drop-sub-text {
+        font-size: 0.95rem;
+        color: var(--color-texto-grey);
+        font-weight: 500;
+    }
+
+    .template-download-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+    }
+
+    .download-anchor {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--color-primario);
+        text-decoration: none;
+    }
+
+    .file-list-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .file-card-item {
+        background: white;
+        border: 2px solid var(--color-fondo-soft);
+        border-radius: var(--radio-md, 16px);
+        padding: 24px;
+        display: flex;
+        gap: 20px;
+        animation: slideUp 0.4s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .file-leading-icon {
+        width: 52px;
+        height: 52px;
+        background: var(--color-primario-soft);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        color: var(--color-primario);
+    }
+
+    .file-content-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .file-top-details {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+    }
+
+    .file-display-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: var(--color-texto-dark);
+    }
+
+    .remove-file-action {
+        background: var(--color-fondo-soft);
+        border: none;
+        color: var(--color-texto-grey);
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .remove-file-action:hover {
+        background: var(--color-danger-soft);
+        color: var(--color-danger);
+    }
+
+    .file-metadata-row {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--color-texto-grey);
+        margin-bottom: 20px;
+    }
+
+    .progress-track-premium {
+        height: 10px;
+        background: var(--color-fondo-soft);
+        border-radius: 5px;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .progress-bar-fill-dynamic {
+        height: 100%;
+        background: var(--color-primario);
+        width: 0%;
+        transition: width 0.4s ease;
+    }
+
+    .progress-percentage-label {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--color-primario);
+        min-width: 45px;
+        text-align: right;
+    }
+
+    .progress-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 8px 0;
+    }
+
+    .status-indicator.success {
+        color: var(--color-primario);
+    }
+    .status-indicator.warning {
+        color: #f59e0b; /* Color Ámbar para avisos */
+    }
+    .status-indicator.error {
+        color: var(--color-danger);
+    }
+
+    .dropzone-actions-footer {
+        padding: 32px 40px;
+        background: var(--color-fondo-soft);
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .btn-action-primary-full {
+        width: 240px;
+        padding: 16px;
+        border-radius: var(--radio-md, 16px);
+        border: none;
+        background: var(--color-primario);
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.25s;
+        box-shadow: var(--sombra-primaria);
+    }
+
+    .btn-action-primary-full:hover:not(:disabled) {
+        transform: translateY(-2px);
+        filter: brightness(1.05);
+        box-shadow: 0 15px 30px rgba(16, 185, 129, 0.25);
+    }
+
+    .hidden {
+        display: none !important;
+    }
+</style>

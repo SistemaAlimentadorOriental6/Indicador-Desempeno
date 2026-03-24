@@ -1,0 +1,1570 @@
+---
+import AdminLayout from "@layouts/AdminLayout.astro";
+import HeaderCard from "@components/ui/HeaderCard.astro";
+import SearchFilters from "@components/rankings/SearchFilters.astro";
+import Tabs from "@components/ui/Tabs.astro";
+import OperatorCard from "@components/rankings/OperatorCard.astro";
+import OperatorDetailModal from "@components/rankings/OperatorDetailModal.astro";
+import BonoChartModal from "@components/ui/BonoChartModal.astro";
+
+const operadores: any[] = [];
+
+const filtros = [
+    {
+        nombre: "Todos",
+        count: 0,
+        activo: true,
+        icon: "users",
+    },
+    {
+        nombre: "Oro",
+        count: 0,
+        icon: "trophy",
+        color: "#FFD700",
+    },
+    {
+        nombre: "Plata",
+        count: 0,
+        icon: "medal",
+        color: "#C0C0C0",
+    },
+    {
+        nombre: "Bronce",
+        count: 0,
+        icon: "medal",
+        color: "#CD7F32",
+    },
+    {
+        nombre: "Mejorar",
+        count: 0,
+        icon: "trending-up",
+        color: "#e67e22",
+    },
+    {
+        nombre: "Taller Conciencia",
+        count: 0,
+        icon: "alert-circle",
+        color: "#e74c3c",
+    },
+];
+---
+
+<AdminLayout titulo="Rankings de Operadores">
+    <div id="operadores-ranking-view">
+        <HeaderCard
+            titulo="Rankings de Operadores"
+            subtitulo="Sistema de clasificación basado en rendimiento y eficiencia"
+        />
+
+        <SearchFilters resultados={591} />
+
+        <Tabs filtros={filtros} />
+
+        <div class="results-meta">
+            <p>Mostrando 1 a 50 de 591 operadores</p>
+            <p class="page-info">Página 1 de 12</p>
+        </div>
+
+        <div class="operators-grid"></div>
+
+        <div
+            id="infinite-scroll-sentinel"
+            style="height: 20px; margin-top: 20px;"
+        >
+        </div>
+    </div>
+
+    <OperatorDetailModal />
+    <BonoChartModal />
+
+    <script>
+        import { API_CONFIG, getApiUrl } from "@config/api";
+        import { FiltroService } from "@services/FiltroService";
+
+        let allOperators: any[] = [];
+        let rankingMap = new Map();
+
+        let currentFilters = FiltroService.obtenerDeUrl();
+        let filteredOperators: any[] = [];
+        let itemsToShow = 20;
+        const ITEMS_PER_PAGE = 20;
+        let observer: IntersectionObserver | null = null;
+
+        async function loadOperators() {
+            const page = document.getElementById("operadores-ranking-view");
+            if (!page) return;
+
+            const grid = page.querySelector(".operators-grid");
+            if (!grid) return;
+
+            renderSkeletons(grid, 12);
+
+            try {
+                // Preparar URL de ranking con filtros si existen
+                let rankingUrl = getApiUrl(
+                    API_CONFIG.ENDPOINTS.DESEMPENO.GET_RANKING,
+                );
+                if (currentFilters.periodo.tipo !== "all") {
+                    const p = new URLSearchParams();
+                    p.append("anio", currentFilters.periodo.anio.toString());
+                    if (currentFilters.periodo.tipo === "month") {
+                        p.append("mes", currentFilters.periodo.mes.toString());
+                    }
+                    rankingUrl += `?${p.toString()}`;
+                }
+
+                // Fetch operadores y ranking en paralelo
+                const [respOps, respRank] = await Promise.all([
+                    fetch(getApiUrl(API_CONFIG.ENDPOINTS.OPERADORES.GET_ALL)),
+                    fetch(rankingUrl),
+                ]);
+
+                if (!respOps.ok || !respRank.ok)
+                    throw new Error("Error al obtener datos");
+
+                const operators = await respOps.json();
+                const rankingData = await respRank.json();
+
+                // Crear mapa de ranking para búsqueda rápida
+                rankingMap = new Map();
+                rankingData.forEach((item: any) =>
+                    rankingMap.set(item.codigo, item),
+                );
+
+                // Lista de excepciones para sobrescribir cargos
+                const excepcionesCargo: Record<string, string> = {
+                    "76305225": "OPERADOR REUBICADO",
+                    "71680464": "OPERADOR REUBICADO",
+                    "71685483": "OPERADOR REUBICADO",
+                    "18395828": "OPERADOR REUBICADO",
+                    "98577522": "OPERADOR REUBICADO",
+                    "98575332": "OPERADOR REUBICADO",
+                    "13886212": "OPERADOR REUBICADO",
+                    "71665896": "OPERADOR REUBICADO",
+                    "98593153": "OPERADOR REUBICADO",
+                    "98451399": "OPERADOR REUBICADO",
+                    "71769615": "OPERADOR REUBICADO",
+                    "1017130322": "OPERADOR 1.5 SMLV",
+                    "15384809": "OPERADOR 1.5 SMLV",
+                    "8013217": "OPERADOR 1.5 SMLV",
+                    "70330438": "OPERADOR 1.5 SMLV",
+                    "71337548": "OPERADOR 1.5 SMLV",
+                    "71644706": "OPERADOR 1.5 SMLV",
+                    "71653095": "OPERADOR 1.5 SMLV",
+                    "71655264": "OPERADOR 1.5 SMLV",
+                    "71743050": "OPERADOR 1.5 SMLV",
+                    "71750594": "OPERADOR 1.5 SMLV",
+                    "71763151": "OPERADOR 1.5 SMLV",
+                    "98464593": "OPERADOR 1.5 SMLV",
+                    "98506999": "OPERADOR 1.5 SMLV",
+                    "98517588": "OPERADOR 1.5 SMLV",
+                    "98707206": "OPERADOR 1.5 SMLV",
+                    "1035853821": "OPERADOR 1.5 SMLV",
+                    "98565206": "OPERADOR REPOSTAJE",
+                    "71261139": "OPERADOR REPOSTAJE"
+                };
+
+                const normalizeCargo = (c: string) => {
+                    if (!c) return "";
+                    let val = c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+                    if (val === "OPERADOR DE DIAGNOSTICO" || val === "OPERADOR DE DIAGNOSTICO ") return "OPERADOR DIAGNOSTICO";
+                    return val;
+                };
+
+                // Guardar operadores con métricas ya procesadas para facilitar ordenamiento
+                allOperators = operators.map((op: any) => {
+                    op.cargo = normalizeCargo(op.cargo);
+
+                    // Sobrescribir el cargo si la cédula está en las excepciones
+                    if (excepcionesCargo[op.cedula]) {
+                        op.cargo = normalizeCargo(excepcionesCargo[op.cedula]);
+                    }
+
+                    const metrics = rankingMap.get(op.codigo) || {
+                        eficiencia: "---",
+                        efAnual: 0,
+                        bonos: "$0",
+                        km: "0K",
+                        kmProgreso: 0,
+                        bonosProgreso: 0,
+                        cumplimientoTotal: 0,
+                        rango: "Taller Conciencia",
+                        rangoBono: "Taller Conciencia",
+                        rangoKm: "Taller Conciencia",
+                    };
+
+                    // Normalizar valores para ordenamiento
+                    let bonosVal = 0;
+                    if (typeof metrics.bonos === "string") {
+                        // El bono viene como "$334K" o "$175K" o "$0K"
+                        let clean = metrics.bonos
+                            .toLowerCase()
+                            .replace("k", "000") // Convertir K a miles
+                            .replace(/[^0-9.-]+/g, ""); // Quitar el $, espacios, etc.
+                        bonosVal = parseFloat(clean) || 0;
+                    } else if (typeof metrics.bonos === "number") {
+                        bonosVal = metrics.bonos;
+                    }
+                    let kmVal = 0;
+                    if (typeof metrics.km === "string") {
+                        // K o km
+                        let clean = metrics.km
+                            .toLowerCase()
+                            .replace("k", "000")
+                            .replace("km", "")
+                            .replace(",", "");
+                        kmVal = parseFloat(clean) || 0;
+                    }
+
+                    // Determinar estado basado en fecha retiro o novedad
+                    const isActive = !op.fechaRetiro;
+                    const hasNovelty = false;
+
+                    return {
+                        ...op,
+                        metrics: {
+                            ...metrics,
+                            rango: metrics.rango || "Taller Conciencia",
+                            rangoBono: metrics.rangoBono || "Taller Conciencia",
+                            rangoKm: metrics.rangoKm || "Taller Conciencia",
+                            bonosProgreso: metrics.bonosProgreso || 0,
+                        },
+                        computed: {
+                            bonos: bonosVal,
+                            km: kmVal,
+                            eficiencia: metrics.efAnual || 0,
+                            bonosProgreso: metrics.bonosProgreso || 0,
+                            isActive,
+                            hasNovelty,
+                            rango: metrics.rango || "Taller Conciencia",
+                            rangoBono: metrics.rangoBono || "Taller Conciencia",
+                            rangoKm: metrics.rangoKm || "Taller Conciencia",
+                        },
+                    };
+                });
+
+                // Calcular Ranking Global Inicial (Ordenado por eficiencia de mayor a menor)
+                allOperators.sort((a, b) => {
+                    let efA = a.metrics.eficiencia;
+                    let efB = b.metrics.eficiencia;
+                    if (typeof efA === "string")
+                        efA = parseFloat(efA.replace("%", "")) || 0;
+                    if (typeof efB === "string")
+                        efB = parseFloat(efB.replace("%", "")) || 0;
+                    return efB - efA;
+                });
+
+                // Asignar el ranking fijo a cada operador
+                allOperators.forEach((op, index) => {
+                    op.computed.globalRank = index + 1;
+                });
+
+                // Emitir SIEMPRE la lista completa de cargos permitidos al modal de filtros
+                const cargosPermitidos = [
+                    "OPERADOR",
+                    "OPERADOR DUAL",
+                    "OPERADOR REUBICADO",
+                    "OPERADOR REPOSTAJE",
+                    "OPERADOR DIAGNOSTICO",
+                    "OPERADOR DE ALISTAMIENTO",
+                    "OPERADOR 1.5 SMLV"
+                ].sort();
+                
+                document.dispatchEvent(new CustomEvent("cargosLoaded", {
+                    detail: cargosPermitidos
+                }));
+
+                // Render inicial
+                initIntersectionObserver();
+                applyCurrentFilters(); // Este ya llama a updateCounts() internamente
+                initSearchListeners();
+            } catch (e) {
+                console.error("Error loading operators:", e);
+                grid.innerHTML = `<div class="error-msg">Error al cargar datos. Por favor reintente.</div>`;
+            }
+        }
+
+        function renderSkeletons(grid: Element, count: number) {
+            grid.innerHTML = "";
+            for (let i = 0; i < count; i++) {
+                const skeleton = document.createElement("div");
+                skeleton.className = "skeleton-card";
+                skeleton.innerHTML = `
+                    <div class="skeleton-rank"></div>
+                    <div class="skeleton-avatar"></div>
+                    <div class="skeleton-name"></div>
+                    <div class="skeleton-role"></div>
+                    <div class="skeleton-zone"></div>
+                    <div class="skeleton-metrics">
+                        <div class="skeleton-metric"></div>
+                        <div class="skeleton-metric"></div>
+                        <div class="skeleton-metric"></div>
+                        <div class="skeleton-metric"></div>
+                    </div>
+                    <div class="skeleton-progress"></div>
+                    <div class="skeleton-progress"></div>
+                `;
+                grid.appendChild(skeleton);
+            }
+        }
+
+        function initIntersectionObserver() {
+            const sentinel = document.getElementById(
+                "infinite-scroll-sentinel",
+            );
+            if (!sentinel) return;
+
+            observer = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0].isIntersecting) {
+                        loadMoreItems();
+                    }
+                },
+                {
+                    rootMargin: "200px", // Cargar un poco antes de llegar al final
+                },
+            );
+
+            observer.observe(sentinel);
+        }
+
+        function loadMoreItems() {
+            if (itemsToShow >= filteredOperators.length) return;
+
+            const nextBatch = filteredOperators.slice(
+                itemsToShow,
+                itemsToShow + ITEMS_PER_PAGE,
+            );
+            renderOperators(nextBatch, true);
+            itemsToShow += ITEMS_PER_PAGE;
+
+            updateMeta(filteredOperators.length);
+        }
+
+        function applyCurrentFilters() {
+            let result = [...allOperators];
+
+            // 1. Búsqueda "Inteligente"
+            if (currentFilters.busqueda) {
+                const normalize = (text: string) =>
+                    text
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .toLowerCase();
+
+                const q = normalize(currentFilters.busqueda);
+                const searchTerms = q.split(" ").filter((t) => t.length > 0);
+
+                result = result.filter((op) => {
+                    const searchableString = normalize(`
+                        ${op.nombre || ""} 
+                        ${op.cedula || ""} 
+                        ${op.codigo || ""} 
+                        ${op.cargo || ""}
+                    `);
+                    return searchTerms.every((term) =>
+                        searchableString.includes(term),
+                    );
+                });
+            }
+
+            // 2. Estado
+            if (currentFilters.estado !== "all") {
+                if (currentFilters.estado === "active") {
+                    result = result.filter((op) => op.computed.isActive);
+                } else if (currentFilters.estado === "inactive") {
+                    result = result.filter((op) => !op.computed.isActive);
+                } else if (currentFilters.estado === "novelty") {
+                    result = result.filter((op) => op.computed.hasNovelty);
+                }
+            }
+
+            // 2.2 Cargo
+            if (currentFilters.cargo && currentFilters.cargo !== "all") {
+                result = result.filter((op) => op.cargo === currentFilters.cargo);
+            }
+
+            // 2.5 Rango
+            if (currentFilters.pestana !== "Todos") {
+                result = result.filter(
+                    (op) => op.computed.rango === currentFilters.pestana,
+                );
+            }
+
+            // 3. Ordenamiento Robusto
+            result.sort((a, b) => {
+                let valA = 0;
+                let valB = 0;
+
+                switch (currentFilters.ordenar) {
+                    case "bonos":
+                        valA = a.computed.bonos;
+                        valB = b.computed.bonos;
+                        break;
+                    case "km":
+                        valA = a.computed.km;
+                        valB = b.computed.km;
+                        break;
+                    case "eficiencia":
+                    case "ranking":
+                    default:
+                        // La eficiencia en computed ya es un número (0-100)
+                        valA = a.computed.eficiencia;
+                        valB = b.computed.eficiencia;
+                        break;
+                }
+
+                // Mayor a Menor (desc): El más grande arriba
+                // Menor a Mayor (asc): El más pequeño arriba
+                if (currentFilters.direccion === "asc") {
+                    return valA - valB;
+                } else {
+                    return valB - valA;
+                }
+            });
+
+            filteredOperators = result;
+            itemsToShow = ITEMS_PER_PAGE;
+
+            renderOperators(filteredOperators.slice(0, itemsToShow));
+            updateMeta(filteredOperators.length);
+            FiltroService.sincronizarUrl(currentFilters);
+
+            // Notificar a otros componentes que los filtros cambiaron
+            document.dispatchEvent(
+                new CustomEvent("filtersUpdated", {
+                    detail: currentFilters,
+                }),
+            );
+
+            // Actualizar contadores de las pestañas según los filtros horizontales (Estado/Búsqueda)
+            updateCounts();
+        }
+
+        function renderOperators(list: any[], append = false) {
+            const grid = document.querySelector(".operators-grid");
+            if (!grid) return;
+
+            if (!append) {
+                grid.innerHTML = "";
+            }
+
+            const currentCount = append ? grid.children.length : 0;
+
+            list.forEach((op, index) => {
+                const metrics = op.metrics;
+                const cardWrapper = document.createElement("div");
+                cardWrapper.className = "card-entry operator-card-trigger";
+                cardWrapper.style.animationDelay = `${Math.min(index * 0.05, 0.5)}s`;
+
+                const rangoClase = (op.computed.rango || "Mejorar")
+                    .toLowerCase()
+                    .replace(/\s+/g, "-");
+
+                const isRetired =
+                    op.fechaRetiro &&
+                    op.fechaRetiro.trim() !== "" &&
+                    op.fechaRetiro !== "null";
+                const formatDate = (dateStr: string) => {
+                    const d = new Date(dateStr);
+                    return d.toLocaleDateString("es-ES", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                    });
+                };
+
+                cardWrapper.innerHTML = `
+                        <div class="operator-card ${isRetired ? "is-retired" : ""}" 
+                             data-nombre="${op.nombre}" 
+                             data-rango="${op.computed.rango}" 
+                             data-eficiencia="${metrics.eficiencia}" 
+                             data-ef-anual="${metrics.efAnual}"
+                             data-imagen="${op.foto}"
+                             data-codigo="${op.codigo}"
+                             data-cedula="${op.cedula}"
+                             data-cargo="${op.cargo || "OPERADOR"}"
+                             data-zona="${op.zona || ""}"
+                             data-padrino="${op.padrino || ""}"
+                             data-nacimiento="${op.fechaNacimiento || ""}"
+                             data-ingreso="${op.fechaIngreso || ""}"
+                             data-retiro="${op.fechaRetiro || ""}">
+                            <div class="rank-badge ${rangoClase}">#${op.computed.globalRank}</div>
+                            <div class="card-header">
+                                <div class="avatar-wrapper">
+                                    <img src="${op.foto}" alt="${op.nombre}" class="operator-img" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 24 24%22 fill%3D%22%23cbd5e1%22%3E%3Cpath d%3D%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22%2F%3E%3C%2Fsvg%3E'; this.classList.add('is-placeholder');" />
+                                    <div class="status-tag ${rangoClase}">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+                                        ${op.computed.rango.toUpperCase()}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="name-status-group">
+                                    <h2 class="operator-name">
+                                        ${op.nombre}
+                                        <span class="status-icon">
+                                            ${
+                                                !isRetired
+                                                    ? '<svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#46c93a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+                                                    : '<svg class="x-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+                                            }
+                                        </span>
+                                    </h2>
+                                    ${isRetired ? `<span class="retired-label">Renunció el ${formatDate(op.fechaRetiro)}</span>` : ""}
+                                </div>
+                                <p class="operator-role">${op.cargo || "OPERADOR"}</p>
+                                <p class="operator-zone">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>
+                                    Cód: ${op.codigo}
+                                </p>
+                                
+                                <div class="metrics-grid">
+                                    <div class="metric-card efficiency">
+                                        <span class="metric-label">Eficiencia</span>
+                                        <span class="metric-value">${metrics.eficienciaMensual || metrics.eficiencia}</span>
+                                    </div>
+                                    <div class="metric-card annual">
+                                        <span class="metric-label">Ef. Anual</span>
+                                        <div class="metric-row">
+                                            <span class="metric-value">${metrics.efAnual}%</span>
+                                            <div class="progress-circle-mini">
+                                                <svg viewBox="0 0 36 36" class="circular-chart">
+                                                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#eee" stroke-width="3.8"></path>
+                                                    <path class="circle" stroke-dasharray="${metrics.efAnual}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2ecc71" stroke-width="3.8" stroke-linecap="round"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="metric-card">
+                                        <span class="metric-label">Bonos</span>
+                                        <span class="metric-value">${metrics.bonos}</span>
+                                    </div>
+                                    <div class="metric-card">
+                                        <span class="metric-label">KM</span>
+                                        <span class="metric-value">${metrics.km}</span>
+                                    </div>
+                                </div>
+
+                                <div class="progress-section">
+                                    <div class="progress-header">
+                                        <span class="label">Kilómetros</span>
+                                        <span class="value">${metrics.kmProgreso}%</span>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar km" style="width: ${Math.min(metrics.kmProgreso, 100)}%"></div>
+                                    </div>
+                                    <div class="progress-header">
+                                        <span class="label">Bonos</span>
+                                        <span class="value">${metrics.bonosProgreso}%</span>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar bonos" style="width: ${Math.min(metrics.bonosProgreso, 100)}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                // Agregar evento de click al wrapper recién creado
+                cardWrapper.addEventListener("click", toggleModal);
+                grid.appendChild(cardWrapper);
+            });
+        }
+
+        function updateMeta(totalCount: number) {
+            const meta = document.querySelector(".results-meta");
+            const currentlyShowing = Math.min(itemsToShow, totalCount);
+            if (meta) {
+                meta.innerHTML = `
+                    <p>Mostrando ${currentlyShowing} de ${totalCount} operadores</p>
+                    <p class="page-info">Página ${Math.ceil(currentlyShowing / ITEMS_PER_PAGE)} de ${Math.ceil(totalCount / ITEMS_PER_PAGE)}</p>
+                `;
+            }
+            // Actualizar badge "Todos"
+            const filterBadges = document.querySelectorAll(".tab-item .count");
+            if (filterBadges[0])
+                filterBadges[0].textContent = totalCount.toString();
+        }
+
+        function updateCounts() {
+            // Para los contadores de las pestañas (Oro, Plata, etc.),
+            // debemos filtrar allOperators por los criterios de búsqueda y estado ACTUALES,
+            // pero SIN filtrar por la pestaña misma.
+            let baseForCounts = [...allOperators];
+
+            // 1. Filtrar por Búsqueda (si existe)
+            if (currentFilters.busqueda) {
+                const normalize = (text: string) =>
+                    text
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .toLowerCase();
+
+                const q = normalize(currentFilters.busqueda);
+                const searchTerms = q.split(" ").filter((t) => t.length > 0);
+
+                baseForCounts = baseForCounts.filter((op) => {
+                    const searchableString = normalize(`
+                        ${op.nombre || ""} 
+                        ${op.cedula || ""} 
+                        ${op.codigo || ""} 
+                        ${op.cargo || ""}
+                    `);
+                    return searchTerms.every((term) =>
+                        searchableString.includes(term),
+                    );
+                });
+            }
+
+            // 2. Filtrar por Estado
+            if (currentFilters.estado !== "all") {
+                if (currentFilters.estado === "active") {
+                    baseForCounts = baseForCounts.filter(
+                        (op) => op.computed.isActive,
+                    );
+                } else if (currentFilters.estado === "inactive") {
+                    baseForCounts = baseForCounts.filter(
+                        (op) => !op.computed.isActive,
+                    );
+                } else if (currentFilters.estado === "novelty") {
+                    baseForCounts = baseForCounts.filter(
+                        (op) => op.computed.hasNovelty,
+                    );
+                }
+            }
+
+            // 3. Filtrar por Cargo (Agregado para que los contadores coincidan con el filtro actual)
+            if (currentFilters.cargo && currentFilters.cargo !== "all") {
+                baseForCounts = baseForCounts.filter(
+                    (op) => op.cargo === currentFilters.cargo,
+                );
+            }
+
+            const counts: any = {
+                Todos: baseForCounts.length,
+                Oro: baseForCounts.filter((op) => op.computed.rango === "Oro")
+                    .length,
+                Plata: baseForCounts.filter(
+                    (op) => op.computed.rango === "Plata",
+                ).length,
+                Bronce: baseForCounts.filter(
+                    (op) => op.computed.rango === "Bronce",
+                ).length,
+                Mejorar: baseForCounts.filter(
+                    (op) => op.computed.rango === "Mejorar",
+                ).length,
+                "Taller Conciencia": baseForCounts.filter(
+                    (op) => op.computed.rango === "Taller Conciencia",
+                ).length,
+            };
+
+            // Actualizar badges en las pestañas
+            const tabBtns = document.querySelectorAll(".tab-btn");
+            tabBtns.forEach((btn) => {
+                const nameEl = btn.querySelector(".tab-name");
+                const countEl = btn.querySelector(".tab-count");
+                if (nameEl && countEl) {
+                    const name = nameEl.textContent?.trim();
+                    if (name && counts[name] !== undefined) {
+                        countEl.textContent = counts[name].toString();
+                    }
+                }
+            });
+
+            // Actualizar el nuevo indicador de "100% Bono" en el HeaderCard
+            updateBonoPerfectoStats(baseForCounts);
+
+            // Mantener compatibilidad con otros componentes si escuchan este evento
+            const apiCounts = {
+                all: baseForCounts.length,
+                active: baseForCounts.filter((op) => op.computed.isActive)
+                    .length,
+                inactive: baseForCounts.filter((op) => !op.computed.isActive)
+                    .length,
+                novelty: baseForCounts.filter((op) => op.computed.hasNovelty)
+                    .length,
+            };
+
+            const event = new CustomEvent("updateFilterCounts", {
+                detail: apiCounts,
+            });
+            document.dispatchEvent(event);
+        }
+
+        // Datos globales del modal de bono
+        let _bonoModalData: { porRango: Record<string, number>; total: number; periodo: string } | null = null;
+
+        function updateBonoPerfectoStats(operadoresBase: any[]) {
+            const statsContainer = document.getElementById("bono-perfecto-stats");
+            if (!statsContainer) return;
+
+            const operadoresBonoPerfecto = operadoresBase.filter(op => {
+                const bonoPct = op.metrics?.bonosProgreso || op.computed?.bonosProgreso || 0;
+                const rango = op.computed?.rango || "";
+                return bonoPct >= 100 && rango !== "Taller Conciencia";
+            });
+
+            statsContainer.classList.remove("hidden");
+
+            const countOro    = operadoresBonoPerfecto.filter(op => op.computed.rango === "Oro").length;
+            const countPlata  = operadoresBonoPerfecto.filter(op => op.computed.rango === "Plata").length;
+            const countBronce = operadoresBonoPerfecto.filter(op => op.computed.rango === "Bronce").length;
+            const countMejorar = operadoresBonoPerfecto.filter(op => op.computed.rango === "Mejorar").length;
+            const total = operadoresBonoPerfecto.length;
+
+            // Actualizar badges del HeaderCard
+            const elOro    = document.getElementById("bp-count-oro");
+            const elPlata  = document.getElementById("bp-count-plata");
+            const elBronce = document.getElementById("bp-count-bronce");
+            const elMejorar = document.getElementById("bp-count-mejorar");
+            const elTaller  = document.getElementById("bp-count-taller");
+            const elTotal   = document.getElementById("bp-count-total");
+
+            if (elOro)    elOro.textContent    = countOro.toString();
+            if (elPlata)  elPlata.textContent  = countPlata.toString();
+            if (elBronce) elBronce.textContent = countBronce.toString();
+            if (elMejorar) elMejorar.textContent = countMejorar.toString();
+            if (elTaller)  elTaller.textContent  = "0";
+            if (elTotal)   elTotal.textContent   = total.toString();
+
+            // Guardar datos para el modal
+            const periodo = currentFilters.periodo.tipo === "all"
+                ? "Todos los periodos"
+                : currentFilters.periodo.tipo === "year"
+                    ? `Año ${currentFilters.periodo.anio}`
+                    : `${["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][currentFilters.periodo.mes]} ${currentFilters.periodo.anio}`;
+
+            _bonoModalData = {
+                porRango: { Oro: countOro, Plata: countPlata, Bronce: countBronce, Mejorar: countMejorar },
+                total,
+                periodo,
+            };
+
+            // Registrar click (solo una vez) en la card de bono perfecto
+            if (!statsContainer.dataset.clickBound) {
+                statsContainer.dataset.clickBound = "1";
+                statsContainer.style.cursor = "pointer";
+                statsContainer.addEventListener("click", () => {
+                    if (!_bonoModalData) return;
+                    document.dispatchEvent(new CustomEvent("abrirBonoModal", { detail: _bonoModalData }));
+                });
+            }
+        }
+
+        function syncUiWithFilters() {
+            // Sincronizar Pestañas (Categorías)
+            const tabBtns = document.querySelectorAll(".tab-btn");
+            tabBtns.forEach((btn) => {
+                const nameEl = btn.querySelector(".tab-name");
+                const name = nameEl?.textContent?.trim() || "Todos";
+                if (name === currentFilters.pestana) {
+                    tabBtns.forEach((b) => b.classList.remove("active"));
+                    btn.classList.add("active");
+                }
+            });
+
+            // Sincronizar Buscador
+            const searchInput = document.querySelector(
+                ".input-premium",
+            ) as HTMLInputElement;
+            if (searchInput) {
+                searchInput.value = currentFilters.busqueda;
+            }
+        }
+
+        async function reloadRankingData() {
+            const grid = document.querySelector(".operators-grid");
+            if (!grid) return;
+
+            // Mostrar skeletons mientras recarga
+            renderSkeletons(grid, filteredOperators.length || 12);
+
+            try {
+                let url = getApiUrl(API_CONFIG.ENDPOINTS.DESEMPENO.GET_RANKING);
+                if (currentFilters.periodo.tipo !== "all") {
+                    const params = new URLSearchParams();
+                    params.append(
+                        "anio",
+                        currentFilters.periodo.anio.toString(),
+                    );
+                    if (currentFilters.periodo.tipo === "month") {
+                        params.append(
+                            "mes",
+                            currentFilters.periodo.mes.toString(),
+                        );
+                    }
+                    url += `?${params.toString()}`;
+                }
+
+                const respRank = await fetch(url);
+                if (!respRank.ok) throw new Error("Error al obtener ranking");
+
+                const rankingData = await respRank.json();
+
+                // Actualizar mapa y datos procesados
+                rankingMap = new Map();
+                rankingData.forEach((item: any) =>
+                    rankingMap.set(item.codigo, item),
+                );
+
+                allOperators = allOperators.map((op) => {
+                    const metrics = rankingMap.get(op.codigo) || {
+                        eficiencia: "---",
+                        efAnual: 0,
+                        bonos: "$0",
+                        km: "0K",
+                        kmProgreso: 0,
+                        bonosProgreso: 0,
+                        cumplimientoTotal: 0,
+                        rango: "Taller Conciencia",
+                        rangoBono: "Taller Conciencia",
+                        rangoKm: "Taller Conciencia",
+                        detalle: { kmPeriodo: "0", bonoPeriodo: "0" },
+                    };
+
+                    // Recalcular valores normalizados
+                    let bonosVal = 0;
+                    if (typeof metrics.bonos === "string") {
+                        bonosVal =
+                            parseFloat(
+                                metrics.bonos.replace(/[^0-9.-]+/g, ""),
+                            ) || 0;
+                    }
+                    let kmVal = 0;
+                    if (typeof metrics.km === "string") {
+                        let clean = metrics.km
+                            .toLowerCase()
+                            .replace("k", "000")
+                            .replace("km", "")
+                            .replace(",", "");
+                        kmVal = parseFloat(clean) || 0;
+                    }
+
+                    return {
+                        ...op,
+                        metrics: {
+                            ...metrics,
+                            rango: metrics.rango || "Taller Conciencia",
+                            rangoBono: metrics.rangoBono || "Taller Conciencia",
+                            rangoKm: metrics.rangoKm || "Taller Conciencia",
+                        },
+                        computed: {
+                            ...op.computed,
+                            bonos: bonosVal,
+                            km: kmVal,
+                            eficiencia: metrics.efAnual || 0,
+                            rango: metrics.rango || "Taller Conciencia",
+                            rangoBono: metrics.rangoBono || "Taller Conciencia",
+                            rangoKm: metrics.rangoKm || "Taller Conciencia",
+                        },
+                    };
+                });
+
+                // Re-ordenar ranking global por eficiencia de la nueva data
+                allOperators.sort((a, b) => {
+                    let efA = a.metrics.eficiencia;
+                    let efB = b.metrics.eficiencia;
+                    if (typeof efA === "string")
+                        efA = parseFloat(efA.replace("%", "")) || 0;
+                    if (typeof efB === "string")
+                        efB = parseFloat(efB.replace("%", "")) || 0;
+                    return efB - efA;
+                });
+
+                allOperators.forEach((op, index) => {
+                    op.computed.globalRank = index + 1;
+                });
+
+                applyCurrentFilters();
+                updateCounts();
+            } catch (e) {
+                console.error("Error reloading data:", e);
+                grid.innerHTML = `<div class="error-msg">Error al actualizar datos.</div>`;
+            }
+        }
+
+        function initSearchListeners() {
+            // Pestañas (Rangos)
+            const tabBtns = document.querySelectorAll(".tab-btn");
+            tabBtns.forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    // Remover active de todos
+                    tabBtns.forEach((b) => b.classList.remove("active"));
+                    // Agregar active al actual
+                    btn.classList.add("active");
+
+                    const nameEl = btn.querySelector(".tab-name");
+                    if (nameEl) {
+                        currentFilters.pestana =
+                            nameEl.textContent?.trim() || "Todos";
+                        applyCurrentFilters();
+                    }
+                });
+            });
+
+            // Buscador
+            const searchInput = document.querySelector(
+                ".input-premium",
+            ) as HTMLInputElement;
+            if (searchInput) {
+                searchInput.addEventListener("input", (e) => {
+                    currentFilters.busqueda = (
+                        e.target as HTMLInputElement
+                    ).value;
+                    applyCurrentFilters();
+                });
+            }
+
+            // Escuchar evento personalizado del Modal
+            document.addEventListener("applyFilters", ((e: CustomEvent) => {
+                const filtrosNuevos = e.detail;
+                if (filtrosNuevos) {
+                    const periodoCambio =
+                        JSON.stringify(currentFilters.periodo) !==
+                        JSON.stringify(filtrosNuevos.periodo);
+
+                    // Sincronizar estado local con los nombres correctos
+                    currentFilters.estado = filtrosNuevos.estado;
+                    currentFilters.cargo = filtrosNuevos.cargo;
+                    currentFilters.ordenar = filtrosNuevos.ordenar;
+                    currentFilters.direccion = filtrosNuevos.direccion;
+                    if (filtrosNuevos.periodo) {
+                        currentFilters.periodo = filtrosNuevos.periodo;
+                    }
+
+                    if (periodoCambio) {
+                        reloadRankingData();
+                    } else {
+                        applyCurrentFilters();
+                    }
+                }
+            }) as EventListener);
+        }
+
+        const initDetailModal = () => {
+            // Ya no buscamos los triggers aquí porque ahora los asignamos al crearlos
+            // Pero necesitamos mantener la función toggleModal accesible
+            const modal = document.getElementById("operator-detail-modal");
+            const closeBtn = document.getElementById("close-detail-modal");
+
+            if (!modal) return;
+        };
+
+        const toggleModal = (e: Event) => {
+            const modal = document.getElementById("operator-detail-modal");
+            if (!modal) return;
+
+            const target = e.currentTarget as HTMLElement;
+            const card = target.querySelector(".operator-card") as HTMLElement;
+
+            if (card) {
+                updateModalData(card);
+                const codigo = card.getAttribute("data-codigo");
+                if (codigo) {
+                    if ((window as any).refreshOperatorData) {
+                        (window as any).refreshOperatorData(codigo);
+                    }
+                    if ((window as any).loadAvailableYears) {
+                        (window as any).loadAvailableYears(codigo);
+                    }
+                }
+            }
+
+            modal.classList.toggle("open");
+            if (modal.classList.contains("open")) {
+                document.body.style.overflow = "hidden";
+                if (typeof (window as any).initDetailChart === "function") {
+                    (window as any).initDetailChart();
+                }
+            } else {
+                document.body.style.overflow = "auto";
+            }
+        };
+
+        const updateModalData = (card: HTMLElement) => {
+            const nombre = card.getAttribute("data-nombre");
+            const imagen = card.getAttribute("data-imagen");
+            const eficiencia = card.getAttribute("data-eficiencia");
+            const efAnual = card.getAttribute("data-ef-anual");
+            const codigo = card.getAttribute("data-codigo");
+            const cedula = card.getAttribute("data-cedula");
+            const cargo = card.getAttribute("data-cargo");
+            const zona = card.getAttribute("data-zona") || "Sin zona";
+            const padrino = card.getAttribute("data-padrino") || "No asignado";
+            const nacimiento = card.getAttribute("data-nacimiento");
+            const ingreso = card.getAttribute("data-ingreso");
+            const retiro = card.getAttribute("data-retiro");
+
+            // Selectores del modal
+            const elements = {
+                nombre: document.getElementById("modal-nombre"),
+                img: document.getElementById("modal-img") as HTMLImageElement,
+                eff: document.getElementById("modal-ef-mensual"),
+                efAnual: document.getElementById("modal-ef-anual"),
+                codigo: document.getElementById("modal-codigo"),
+                cedula: document.getElementById("modal-cedula"),
+                cargo: document.getElementById("modal-cargo"),
+                zona: document.getElementById("modal-zona"),
+                padrino: document.getElementById("modal-padrino"),
+                edad: document.getElementById("modal-edad"),
+                ingreso: document.getElementById("modal-ingreso"),
+                antiguedad: document.getElementById("modal-antiguedad"),
+                estado: document.getElementById("modal-estado"),
+            };
+
+            const calculateAge = (dateStr: string | null) => {
+                if (!dateStr || dateStr === "null") return "---";
+                const birth = new Date(dateStr);
+                const now = new Date();
+                let age = now.getFullYear() - birth.getFullYear();
+                const m = now.getMonth() - birth.getMonth();
+                if (m < 0 || (m === 0 && now.getDate() < birth.getDate()))
+                    age--;
+                return `${age} años`;
+            };
+
+            const calculateSeniority = (dateStr: string | null) => {
+                if (!dateStr || dateStr === "null") return "---";
+                const start = new Date(dateStr);
+                const now = new Date();
+                let years = now.getFullYear() - start.getFullYear();
+                let months = now.getMonth() - start.getMonth();
+                if (months < 0) {
+                    years--;
+                    months += 12;
+                }
+                return `${years} años, ${months} meses`;
+            };
+
+            const formatDate = (dateStr: string | null) => {
+                if (!dateStr || dateStr === "null") return "---";
+                const d = new Date(dateStr);
+                return d.toLocaleDateString("es-CO");
+            };
+
+            if (elements.nombre && nombre) elements.nombre.textContent = nombre;
+            if (elements.img && imagen) elements.img.src = imagen;
+            if (elements.eff && eficiencia)
+                elements.eff.textContent = eficiencia;
+            if (elements.efAnual && efAnual)
+                elements.efAnual.textContent = efAnual + "%";
+            if (elements.codigo && codigo) elements.codigo.textContent = codigo;
+            if (elements.cedula && cedula) elements.cedula.textContent = cedula;
+            if (elements.cargo && cargo) elements.cargo.textContent = cargo;
+            if (elements.zona) elements.zona.textContent = zona;
+            if (elements.padrino) elements.padrino.textContent = padrino;
+
+            if (elements.edad)
+                elements.edad.textContent = calculateAge(nacimiento);
+            if (elements.ingreso)
+                elements.ingreso.textContent = formatDate(ingreso);
+            if (elements.antiguedad)
+                elements.antiguedad.textContent = calculateSeniority(ingreso);
+
+            if (elements.estado) {
+                const isRetired =
+                    retiro && retiro.trim() !== "" && retiro !== "null";
+                elements.estado.textContent = isRetired
+                    ? "Retirado"
+                    : "Vigente";
+                elements.estado.className = isRetired
+                    ? "text-danger"
+                    : "text-success";
+            }
+        };
+
+        const setupModalStaticEvents = () => {
+            const modal = document.getElementById("operator-detail-modal");
+            const closeBtn = document.getElementById("close-detail-modal");
+            if (!modal) return;
+
+            closeBtn?.addEventListener("click", () => {
+                modal.classList.remove("open");
+                document.body.style.overflow = "auto";
+            });
+
+            modal.addEventListener("click", (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove("open");
+                    document.body.style.overflow = "auto";
+                }
+            });
+        };
+
+        document.addEventListener("astro:page-load", () => {
+            loadOperators();
+            setupModalStaticEvents();
+        });
+    </script>
+
+    <style is:global>
+        .card-entry {
+            animation: slideUpFade 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes slideUpFade {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #a0a6ae;
+            margin-bottom: 20px;
+            padding: 0 5px;
+        }
+
+        .operators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+            padding-bottom: 40px;
+        }
+
+        /* Estilos para la tarjeta inyectada dinámicamente */
+        .operator-card {
+            background: white;
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .operator-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+        }
+
+        .rank-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #a0a6ae;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            z-index: 10;
+        }
+
+        .rank-badge.oro {
+            background: #ffd700;
+            color: #000;
+        }
+        .rank-badge.plata {
+            background: #c0c0c0;
+            color: #000;
+        }
+        .rank-badge.bronce {
+            background: #cd7f32;
+            color: #fff;
+        }
+        .rank-badge.mejorar {
+            background: #e67e22;
+            color: #fff;
+        }
+        .rank-badge.taller-conciencia {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .avatar-wrapper {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .operator-img {
+            width: 100px;
+            height: 100px;
+            border-radius: 24px;
+            object-fit: cover;
+            border: 4px solid #f8f9fa;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .status-tag {
+            position: absolute;
+            bottom: 0;
+            background: #012921;
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 4px 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            white-space: nowrap;
+        }
+
+        .status-tag.oro {
+            background: #ffd700;
+            color: #000;
+        }
+        .status-tag.plata {
+            background: #c0c0c0;
+            color: #000;
+        }
+        .status-tag.bronce {
+            background: #cd7f32;
+            color: #fff;
+        }
+        .status-tag.mejorar {
+            background: #e67e22;
+            color: #fff;
+        }
+        .status-tag.taller-conciencia {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        .name-status-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+
+        .operator-name {
+            font-size: 1rem;
+            font-weight: 850;
+            color: #1e293b;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            line-height: 1.2;
+            margin: 0;
+        }
+
+        .status-icon {
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .retired-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #ef4444;
+            background: #fef2f2;
+            padding: 2px 10px;
+            border-radius: 8px;
+            border: 1px solid #fee2e2;
+            margin-top: 2px;
+        }
+
+        .operator-role {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .operator-card.is-retired {
+            background: #fafafa;
+            border-color: #fee2e2;
+        }
+
+        .operator-card.is-retired .operator-img {
+            filter: grayscale(0.6) opacity(0.8);
+            border-color: #fee2e2;
+        }
+
+        .operator-zone {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: #747d8c;
+            margin-bottom: 20px;
+            background: #f1f2f6;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .stats-row {
+            display: none; /* Reemplazado por metrics-grid */
+        }
+
+        /* Grid de Métricas 2x2 */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            text-align: center;
+        }
+
+        .metric-card.efficiency,
+        .metric-card.annual {
+            background: #f0fff4;
+        }
+
+        .metric-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #747d8c;
+            text-transform: capitalize;
+        }
+
+        .metric-card.efficiency .metric-label,
+        .metric-card.annual .metric-label {
+            color: #2ecc71;
+        }
+
+        .metric-value {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #012921;
+        }
+
+        .metric-card.efficiency .metric-value {
+            color: #27ae60;
+        }
+
+        /* Círculo de progreso mini */
+        .progress-circle-mini {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .circular-chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sección de progreso inferior (barras) */
+        .progress-section {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: -4px;
+        }
+
+        .progress-header .label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #012921;
+        }
+
+        .progress-header .value {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #2ecc71;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #f1f2f6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .progress-bar.km {
+            background: #2ecc71;
+        }
+
+        .progress-bar.bonos {
+            background: #4cc253;
+        }
+
+        @media (max-width: 480px) {
+            .operators-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Estilos Skeleton */
+        .skeleton-card {
+            background: white;
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 480px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton-card::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0,
+                rgba(255, 255, 255, 0.2) 20%,
+                rgba(255, 255, 255, 0.5) 60%,
+                rgba(255, 255, 255, 0)
+            );
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .skeleton-rank {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 24px;
+            background: #f1f2f6;
+            border-radius: 12px;
+        }
+
+        .skeleton-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 24px;
+            background: #f1f2f6;
+            margin-bottom: 25px;
+            margin-top: 10px;
+        }
+
+        .skeleton-name {
+            width: 70%;
+            height: 20px;
+            background: #f1f2f6;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .skeleton-role {
+            width: 40%;
+            height: 14px;
+            background: #f1f2f6;
+            border-radius: 7px;
+            margin-bottom: 15px;
+        }
+
+        .skeleton-zone {
+            width: 50%;
+            height: 24px;
+            background: #f1f2f6;
+            border-radius: 20px;
+            margin-bottom: 25px;
+        }
+
+        .skeleton-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .skeleton-metric {
+            height: 60px;
+            background: #f1f2f6;
+            border-radius: 20px;
+        }
+
+        .skeleton-progress {
+            width: 100%;
+            height: 12px;
+            background: #f1f2f6;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .discount-pill {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #ef4444;
+            background: #fef2f2;
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-left: 8px;
+            border: 1px solid #fee2e2;
+            vertical-align: middle;
+        }
+
+        .kpi-value {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+    </style>
+</AdminLayout>

@@ -1,0 +1,115 @@
+---
+import Icon from "@components/ui/Icon.astro";
+import KpiCard from "./shared/KpiCard.astro";
+---
+
+<div id="tab-general" class="tab-content active">
+    <section class="body-section">
+        <div class="section-header">
+            <Icon name="activity" size={20} color="#4cc253" />
+            <h2>Indicadores Clave de Rendimiento</h2>
+        </div>
+        <div class="kpi-grid">
+            <KpiCard
+                id="modal-kpi-bonos-val"
+                label="Bono de Desempeño"
+                icon="dollar"
+                type="success"
+                trendId="modal-kpi-bonos-trend"
+            />
+            <KpiCard
+                id="modal-kpi-km-val"
+                label="Eficiencia de Kilómetros"
+                icon="activity"
+                type="success"
+                trendId="modal-kpi-km-trend"
+            />
+        </div>
+    </section>
+
+    <section class="body-section">
+        <div class="section-header">
+            <Icon name="trending-up" size={20} color="#4cc253" />
+            <h2>Cumplimiento Global Anual</h2>
+            <div class="ms-auto">
+                <select class="clean-select modal-year-select">
+                    <!-- Dinámico -->
+                </select>
+            </div>
+        </div>
+        <div class="chart-box-premium">
+            <div class="chart-container">
+                <canvas id="performanceChartCanvas"></canvas>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+    .kpi-grid {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 40px;
+        max-width: 900px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Estilos para que las tarjetas se sientan más integradas */
+    :global(.kpi-card) {
+        flex: 1;
+        max-width: 400px;
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.02),
+            0 2px 4px -1px rgba(0, 0, 0, 0.01) !important;
+    }
+
+    .body-section {
+        margin-bottom: 45px;
+    }
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 30px;
+        justify-content: center;
+    }
+    .section-header h2 {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #64748b;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .chart-box-premium {
+        background: #f8fafc;
+        padding: 45px;
+        border-radius: 35px;
+        border: 1px solid #f1f5f9;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+    .chart-container {
+        height: 500px;
+        position: relative;
+        width: 100%;
+    }
+    .clean-select {
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-family: "Outfit", sans-serif;
+        font-weight: 700;
+        color: #1e293b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .clean-select:hover {
+        border-color: #4cc253;
+    }
+</style>

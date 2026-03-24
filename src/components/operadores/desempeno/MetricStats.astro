@@ -1,0 +1,55 @@
+---
+interface Props {
+    id?: string;
+    label: string;
+    value: string;
+    percentage: string;
+    colorClass?: string;
+}
+
+const { id, label, value, percentage, colorClass = "" } = Astro.props;
+---
+
+<div class="metric-stats" id={id}>
+    <div class="progress-bar">
+        <div class={`fill ${colorClass}`} style={`width: ${percentage}`}></div>
+    </div>
+    <div class="metric-footer">
+        <span class="muted">{label}</span>
+        <strong>{value}</strong>
+    </div>
+</div>
+
+<style>
+    .metric-stats {
+        margin-top: 10px;
+    }
+    .progress-bar {
+        height: 8px;
+        background: #f1f5f9;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-bar .fill {
+        height: 100%;
+        background: #4cc253;
+        border-radius: 4px;
+    }
+    .progress-bar .fill.primary {
+        background: var(--color-primario);
+    }
+    .metric-footer {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 8px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #94a3b8;
+    }
+    .metric-footer strong {
+        color: #4cc253;
+    }
+    .metric-footer .muted {
+        color: #cbd5e1;
+    }
+</style>

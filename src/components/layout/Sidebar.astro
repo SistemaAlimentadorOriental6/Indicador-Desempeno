@@ -1,0 +1,530 @@
+---
+
+---
+
+<aside class="sidebar" transition:persist>
+    <!-- Header con Logo -->
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <img src="/LOGOSAO6.svg" alt="SAO6 Logo" />
+            </div>
+            <div class="logo-text">
+                <span class="brand">SAO6</span>
+                <span class="sub">Panel de Control</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegación Principal -->
+    <nav class="sidebar-nav">
+        <p class="nav-label">RESUMEN</p>
+
+        <a
+            href="/admin/rankings/operadores"
+            class="nav-item"
+            id="nav-operadores"
+        >
+            <div class="icon-box">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+            </div>
+            <span class="text">Operadores</span>
+            <div class="active-indicator"></div>
+        </a>
+
+        <p class="nav-label" style="margin-top: 24px;">GESTIÓN</p>
+
+        <div class="nav-group">
+            <div class="nav-item-header" id="nav-cargar-datos">
+                <div class="icon-box">
+                    <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                        ></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <span class="text">Cargar Datos</span>
+                <svg
+                    class="chevron"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </div>
+            <div class="nav-submenu" id="submenu-cargar-datos">
+                <a href="/admin/cargar-datos/kilometros" class="submenu-item">
+                    <span class="dot">•</span>
+                    <span class="text">Kilómetros</span>
+                </a>
+                <a href="/admin/cargar-datos/novedades" class="submenu-item">
+                    <span class="dot">•</span>
+                    <span class="text">Novedades</span>
+                </a>
+            </div>
+        </div>
+
+        <a href="/admin/usuarios" class="nav-item" id="nav-usuarios">
+            <div class="icon-box">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="8.5" cy="7" r="4"></circle>
+                    <polyline points="17 11 19 13 23 9"></polyline>
+                </svg>
+            </div>
+            <span class="text">Usuarios</span>
+            <div class="active-indicator"></div>
+        </a>
+    </nav>
+
+    <!-- Footer con Usuario -->
+    <div class="sidebar-footer">
+        <div class="user-card-premium">
+            <div class="user-info-main">
+                <div class="user-avatar-premium">M</div>
+                <div class="user-details">
+                    <p class="user-name">Administrador</p>
+                    <p class="user-role">Mantenimiento</p>
+                </div>
+            </div>
+            <button class="logout-btn-premium" title="Cerrar sesión">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+</aside>
+
+<script>
+    document.addEventListener("astro:page-load", () => {
+        const path = window.location.pathname;
+
+        // Items principales
+        document.querySelectorAll(".nav-item").forEach((item) => {
+            item.classList.remove("active");
+            if (item.getAttribute("href") === path) {
+                item.classList.add("active");
+            }
+        });
+
+        // Submenús
+        document.querySelectorAll(".submenu-item").forEach((item) => {
+            item.classList.remove("active");
+            if (item.getAttribute("href") === path) {
+                item.classList.add("active");
+                item.closest(".nav-group")?.classList.add("open");
+            }
+        });
+
+        // Toggle de grupos
+        document.querySelectorAll(".nav-item-header").forEach((header) => {
+            header.addEventListener("click", () => {
+                const group = header.parentElement;
+                group?.classList.toggle("open");
+            });
+        });
+
+        // ── Cargar datos del usuario desde localStorage ───────────────────
+        try {
+            const rawData = localStorage.getItem("user_data");
+            if (rawData) {
+                const usuario = JSON.parse(rawData);
+                const nombre  = usuario.nombre || usuario.codigo || "Admin";
+                const inicial = nombre.charAt(0).toUpperCase();
+
+                const avatarEl  = document.querySelector(".user-avatar-premium");
+                const nombreEl  = document.querySelector(".user-name");
+                const rolEl     = document.querySelector(".user-role");
+
+                if (avatarEl)  avatarEl.textContent  = inicial;
+                if (nombreEl)  nombreEl.textContent  = nombre;
+                if (rolEl)     rolEl.textContent     = usuario.rol === "admin" ? "Administrador" : usuario.rol ?? "Usuario";
+            }
+        } catch { /* localStorage vacío */ }
+
+        // ── Botón de logout ───────────────────────────────────────────────
+        const logoutBtn = document.querySelector(".logout-btn-premium");
+        logoutBtn?.addEventListener("click", () => {
+            // Limpiar localStorage
+            localStorage.removeItem("user_token");
+            localStorage.removeItem("user_data");
+
+            // Borrar cookies del servidor (expirarlas)
+            const pasado = "Thu, 01 Jan 1970 00:00:00 GMT";
+            document.cookie = `auth_token=; path=/; expires=${pasado}; SameSite=Strict`;
+            document.cookie = `auth_usuario=; path=/; expires=${pasado}; SameSite=Strict`;
+
+            // Redirigir al login
+            window.location.href = "/login";
+        });
+    });
+</script>
+
+<style>
+    .sidebar {
+        width: 280px;
+        background: var(--color-fondo-blanco);
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        z-index: 100;
+        box-shadow: var(--sombra-suave);
+        transition: all 0.25s ease;
+    }
+
+    /* Header */
+    .sidebar-header {
+        padding: 32px 24px;
+    }
+
+    .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .logo-icon {
+        width: 44px;
+        height: 44px;
+        background: var(--color-primario);
+        border-radius: var(--radio-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        box-shadow: var(--sombra-primaria);
+    }
+
+    .logo-icon img {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+    }
+
+    .logo-text {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .brand {
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: var(--color-texto-dark);
+        line-height: 1.1;
+    }
+
+    .sub {
+        font-size: 0.75rem;
+        color: var(--color-texto-grey);
+        font-weight: 500;
+        margin-top: 2px;
+    }
+
+    /* Navegación */
+    .sidebar-nav {
+        flex: 1;
+        padding: 8px 16px;
+    }
+
+    .nav-label {
+        font-size: 0.7rem;
+        letter-spacing: 1.2px;
+        color: var(--color-texto-grey);
+        font-weight: 700;
+        text-transform: uppercase;
+        padding-left: 12px;
+        margin-bottom: 16px;
+        opacity: 0.6;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        border-radius: var(--radio-md);
+        color: var(--color-texto-grey);
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-bottom: 8px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .nav-item:hover {
+        background: var(--color-primario-soft);
+        color: var(--color-primario);
+        transform: translateX(5px);
+    }
+
+    .icon-box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.25s ease;
+    }
+
+    .nav-item:hover .icon-box {
+        transform: scale(1.1);
+    }
+
+    .nav-item.active {
+        background: var(--color-primario);
+        color: white;
+        box-shadow: var(--sombra-primaria);
+    }
+
+    .nav-item.active .icon-box {
+        color: white;
+    }
+
+    .active-indicator {
+        position: absolute;
+        right: 0;
+        top: 20%;
+        bottom: 20%;
+        width: 4px;
+        background: white;
+        border-radius: 4px 0 0 4px;
+        transform: scaleX(0);
+        transition: transform 0.25s ease;
+    }
+
+    .nav-item.active .active-indicator {
+        transform: scaleX(1);
+    }
+
+    /* Submenú */
+    .nav-group {
+        margin-bottom: 8px;
+    }
+
+    .nav-item-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        border-radius: var(--radio-md);
+        color: var(--color-texto-grey);
+        font-weight: 500;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+
+    .nav-item-header:hover {
+        background: var(--color-primario-soft);
+        color: var(--color-primario);
+    }
+
+    .nav-item-header .chevron {
+        margin-left: auto;
+        transition: transform 0.3s ease;
+        opacity: 0.5;
+    }
+
+    .nav-group.open .nav-item-header {
+        color: var(--color-primario);
+    }
+
+    .nav-group.open .chevron {
+        transform: rotate(180deg);
+        opacity: 1;
+    }
+
+    .nav-submenu {
+        max-height: 0;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        padding-left: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .nav-group.open .nav-submenu {
+        max-height: 200px;
+        margin-top: 4px;
+        margin-bottom: 12px;
+    }
+
+    .submenu-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        border-radius: var(--radio-sm);
+        color: var(--color-texto-grey);
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-decoration: none;
+    }
+
+    .submenu-item .dot {
+        font-size: 1.2rem;
+        opacity: 0.3;
+        transition: all 0.2s ease;
+    }
+
+    .submenu-item:hover {
+        color: var(--color-primario);
+        background: var(--color-primario-soft);
+    }
+
+    .submenu-item:hover .dot {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    .submenu-item.active {
+        color: var(--color-primario);
+        font-weight: 600;
+    }
+
+    .submenu-item.active .dot {
+        opacity: 1;
+        color: var(--color-primario);
+    }
+
+    /* Footer y Usuario */
+    .sidebar-footer {
+        padding: 24px 16px;
+    }
+
+    .user-card-premium {
+        background: var(--color-fondo-soft);
+        padding: 14px;
+        border-radius: var(--radio-md);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.25s ease;
+    }
+
+    .user-info-main {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .user-avatar-premium {
+        width: 40px;
+        height: 40px;
+        background: white;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-primario);
+        font-weight: 700;
+        font-size: 1rem;
+        box-shadow: var(--sombra-suave);
+    }
+
+    .user-details {
+        min-width: 0;
+    }
+
+    .user-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--color-texto-dark);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-role {
+        font-size: 0.7rem;
+        color: var(--color-texto-grey);
+        font-weight: 500;
+    }
+
+    .logout-btn-premium {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: white;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-texto-grey);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--sombra-suave);
+        flex-shrink: 0;
+    }
+
+    .logout-btn-premium:hover {
+        background: var(--color-danger);
+        color: white;
+        box-shadow: 0px 5px 15px rgba(255, 71, 87, 0.3);
+        transform: scale(1.05);
+    }
+
+    @media (max-width: 768px) {
+        .sidebar {
+            width: 0;
+            overflow: hidden;
+            box-shadow: none;
+        }
+    }
+</style>

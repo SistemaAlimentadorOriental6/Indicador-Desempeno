@@ -1,0 +1,925 @@
+---
+import AdminLayout from "@layouts/AdminLayout.astro";
+---
+
+<AdminLayout titulo="Gestión de Usuarios">
+    <div class="users-page">
+        <!-- Encabezado de la página -->
+        <header class="page-header">
+            <div class="header-info">
+                <h1>Gestión de Usuarios</h1>
+                <p>Administra los accesos y permisos al panel administrativo</p>
+            </div>
+            <button class="btn-primary" id="btnNuevoUsuario">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Nuevo Usuario
+            </button>
+        </header>
+
+        <!-- Tabla de Usuarios -->
+        <div class="users-container">
+            <div class="table-card">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Código</th>
+                            <th>Permisos de Acceso</th>
+                            <th>Estado</th>
+                            <th class="actions-col">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- Se cargará dinámicamente -->
+                        <tr id="loadingRow">
+                            <td colspan="6" class="loading-state">
+                                <div class="spinner"></div>
+                                Cargando usuarios...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Template para las filas (Evita innerHTML) -->
+        <template id="userRowTemplate">
+            <tr>
+                <td class="col-user">
+                    <div class="user-info-cell">
+                        <div class="avatar"></div>
+                        <span class="user-name-text"></span>
+                    </div>
+                </td>
+                <td class="col-code"><code class="code-badge"></code></td>
+                <td class="col-perms">
+                    <div class="perms-list"></div>
+                </td>
+                <td class="col-status">
+                    <span class="status-indicator"></span>
+                </td>
+                <td class="col-actions actions-col">
+                    <button class="btn-icon edit" title="Editar">
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            ><path
+                                d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+                            ></path><path
+                                d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+                            ></path></svg
+                        >
+                    </button>
+                    <button class="btn-icon delete" title="Eliminar">
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            ><polyline points="3 6 5 6 21 6"></polyline><path
+                                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                            ></path><line x1="10" y1="11" x2="10" y2="17"
+                            ></line><line x1="14" y1="11" x2="14" y2="17"
+                            ></line></svg
+                        >
+                    </button>
+                </td>
+            </tr>
+        </template>
+        <!-- Modal para Crear/Editar Usuario -->
+        <div id="userModal" class="modal">
+            <div class="modal-content">
+                <header class="modal-header">
+                    <h2 id="modalTitle">Nuevo Usuario</h2>
+                    <button class="btn-close" id="btnCloseModal">&times;</button
+                    >
+                </header>
+
+                <form id="userForm" class="user-form">
+                    <input type="hidden" id="userId" />
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="userName">Nombre Completo</label>
+                            <input
+                                type="text"
+                                id="userName"
+                                required
+                                placeholder="Ej: Juan Perez"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="userCode">Código/Cédula</label>
+                            <input
+                                type="text"
+                                id="userCode"
+                                required
+                                placeholder="Ej: 123456"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="userPassword">Contraseña</label>
+                            <input
+                                type="password"
+                                id="userPassword"
+                                placeholder="Dejar en blanco para mantener actual"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="permissions-section">
+                        <h3>Permisos de Acceso (Dashboard Admin)</h3>
+                        <p class="section-desc">
+                            Seleccione a qué secciones podrá ingresar este
+                            usuario
+                        </p>
+
+                        <div class="permissions-grid">
+                            <label class="permission-item">
+                                <input
+                                    type="checkbox"
+                                    name="permissions"
+                                    value="/admin/rankings/operadores"
+                                />
+                                <div class="permission-card">
+                                    <span class="p-title"
+                                        >Panel de Operadores</span
+                                    >
+                                    <span class="p-desc"
+                                        >Rankings, fotos y perfiles</span
+                                    >
+                                </div>
+                            </label>
+
+                            <label class="permission-item">
+                                <input
+                                    type="checkbox"
+                                    name="permissions"
+                                    value="/admin/rankings/mantenimiento"
+                                />
+                                <div class="permission-card">
+                                    <span class="p-title">Mantenimiento</span>
+                                    <span class="p-desc"
+                                        >Indicadores de flota y talleres</span
+                                    >
+                                </div>
+                            </label>
+
+                            <label class="permission-item">
+                                <input
+                                    type="checkbox"
+                                    name="permissions"
+                                    value="/admin/cargar-datos"
+                                />
+                                <div class="permission-card">
+                                    <span class="p-title">Carga de Datos</span>
+                                    <span class="p-desc"
+                                        >Kilómetros y Novedades</span
+                                    >
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn-secondary"
+                            id="btnCancel">Cancelar</button
+                        >
+                        <button type="submit" class="btn-primary" id="btnSave"
+                            >Guardar Usuario</button
+                        >
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</AdminLayout>
+
+<script>
+    import { API_CONFIG, getApiUrl } from "@config/api";
+
+    let users: any[] = [];
+    const tableBody = document.getElementById("usersTableBody");
+    const template = document.getElementById(
+        "userRowTemplate",
+    ) as HTMLTemplateElement;
+    const modal = document.getElementById("userModal");
+    const userForm = document.getElementById("userForm") as HTMLFormElement;
+    const modalTitle = document.getElementById("modalTitle");
+    const btnSave = document.getElementById("btnSave") as HTMLButtonElement;
+
+    // Función para obtener el token del localStorage
+    const getAuthToken = () => localStorage.getItem("user_token");
+
+    // Cargar usuarios desde la API
+    async function fetchUsers() {
+        try {
+            const token = getAuthToken();
+            const response = await fetch(getApiUrl("/usuarios"), {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok)
+                throw new Error("No se pudieron cargar los usuarios");
+
+            users = await response.json();
+            renderUsers();
+        } catch (error) {
+            console.error("Error:", error);
+            if (tableBody) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="error-state">Error al conectar con el servidor</td></tr>`;
+            }
+        }
+    }
+
+    function renderUsers() {
+        if (!tableBody || !template) return;
+        tableBody.innerHTML = "";
+
+        if (users.length === 0) {
+            tableBody.innerHTML =
+                '<tr><td colspan="6" style="text-align:center; padding: 40px; color: #64748b;">No hay usuarios registrados</td></tr>';
+            return;
+        }
+
+        users.forEach((user: any) => {
+            const clone = template.content.cloneNode(true) as DocumentFragment;
+
+            const avatar = clone.querySelector(".avatar");
+            if (avatar)
+                avatar.textContent = user.nombre.charAt(0).toUpperCase();
+
+            const nameText = clone.querySelector(".user-name-text");
+            if (nameText) nameText.textContent = user.nombre;
+
+            const codeBadge = clone.querySelector(".code-badge");
+            if (codeBadge) codeBadge.textContent = user.codigo;
+
+            const permsList = clone.querySelector(".perms-list");
+            if (permsList && user.permisos) {
+                const perms =
+                    typeof user.permisos === "string"
+                        ? JSON.parse(user.permisos)
+                        : user.permisos;
+                perms.forEach((p: string) => {
+                    const span = document.createElement("span");
+                    span.className = "perm-tag";
+                    span.textContent = p;
+                    permsList.appendChild(span);
+                });
+            }
+
+            const status = clone.querySelector(".status-indicator");
+            if (status) {
+                status.className = `status-indicator ${user.activo ? "active" : "inactive"}`;
+                status.textContent = user.activo ? "Activo" : "Inactivo";
+            }
+
+            const editBtn = clone.querySelector(".btn-icon.edit");
+            const deleteBtn = clone.querySelector(".btn-icon.delete");
+
+            editBtn?.addEventListener("click", () =>
+                (window as any).editUser(user.id),
+            );
+            deleteBtn?.addEventListener("click", () =>
+                (window as any).deleteUser(user.id),
+            );
+
+            tableBody.appendChild(clone);
+        });
+    }
+
+    (window as any).editUser = (id: string) => {
+        const user = users.find((u: any) => u.id == id);
+        if (!user) return;
+
+        if (modalTitle) modalTitle.textContent = "Editar Usuario";
+        (document.getElementById("userId") as HTMLInputElement).value = user.id;
+        (document.getElementById("userName") as HTMLInputElement).value =
+            user.nombre;
+        (document.getElementById("userCode") as HTMLInputElement).value =
+            user.codigo;
+        (document.getElementById("userPassword") as HTMLInputElement).value =
+            ""; // No mostrar clave
+
+        const checkboxes = document.querySelectorAll(
+            'input[name="permissions"]',
+        ) as NodeListOf<HTMLInputElement>;
+        const perms =
+            typeof user.permisos === "string"
+                ? JSON.parse(user.permisos)
+                : user.permisos;
+        checkboxes.forEach((cb) => {
+            cb.checked = perms?.includes(cb.value.split("/").pop());
+        });
+
+        modal?.classList.add("open");
+    };
+
+    (window as any).deleteUser = async (id: string) => {
+        if (!confirm("¿Estás seguro de que deseas eliminar este usuario?"))
+            return;
+
+        try {
+            const token = getAuthToken();
+            const response = await fetch(getApiUrl(`/usuarios/${id}`), {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+                fetchUsers();
+            } else {
+                alert("Error al eliminar el usuario");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    };
+
+    document
+        .getElementById("btnNuevoUsuario")
+        ?.addEventListener("click", () => {
+            if (modalTitle) modalTitle.textContent = "Nuevo Usuario";
+            userForm.reset();
+            (document.getElementById("userId") as HTMLInputElement).value = "";
+            modal?.classList.add("open");
+        });
+
+    document
+        .getElementById("btnCloseModal")
+        ?.addEventListener("click", () => modal?.classList.remove("open"));
+    document
+        .getElementById("btnCancel")
+        ?.addEventListener("click", () => modal?.classList.remove("open"));
+
+    userForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const id = (document.getElementById("userId") as HTMLInputElement)
+            .value;
+        const nombre = (document.getElementById("userName") as HTMLInputElement)
+            .value;
+        const codigo = (document.getElementById("userCode") as HTMLInputElement)
+            .value;
+        const clave = (
+            document.getElementById("userPassword") as HTMLInputElement
+        ).value;
+
+        const selectedPermissions = Array.from(
+            document.querySelectorAll('input[name="permissions"]:checked'),
+        ).map((cb) => (cb as HTMLInputElement).value.split("/").pop() || "");
+
+        const userData: any = {
+            nombre,
+            codigo,
+            permisos: selectedPermissions, // El backend recibirá un array o JSON string dependiendo de tu implementación
+        };
+
+        if (clave) userData.clave = clave;
+
+        try {
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.textContent = "Guardando...";
+            }
+
+            const token = getAuthToken();
+            const url = id
+                ? getApiUrl(`/usuarios/${id}`)
+                : getApiUrl("/usuarios");
+            const method = id ? "PUT" : "POST";
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(userData),
+            });
+
+            if (response.ok) {
+                modal?.classList.remove("open");
+                fetchUsers();
+                alert(
+                    `Usuario ${id ? "actualizado" : "creado"} correctamente.`,
+                );
+            } else {
+                const data = await response.json();
+                alert(data.message || "Error al guardar el usuario");
+            }
+        } catch (error) {
+            console.error("Error al guardar:", error);
+            alert("Error de conexión con el servidor");
+        } finally {
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.textContent = "Guardar Usuario";
+            }
+        }
+    });
+
+    // Carga inicial
+    document.addEventListener("astro:page-load", fetchUsers);
+    fetchUsers();
+</script>
+
+<style>
+    .users-page {
+        animation: fadeIn 0.4s ease-out;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        padding: 0 10px;
+    }
+
+    .header-info h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 4px;
+        letter-spacing: -0.5px;
+    }
+
+    .header-info p {
+        color: #64748b;
+        font-size: 1rem;
+    }
+
+    /* Botones */
+    .btn-primary {
+        background: #4cc253;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 16px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 20px rgba(76, 194, 83, 0.2);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(76, 194, 83, 0.3);
+        background: #45b34b;
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #64748b;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    /* Tabla */
+    .users-container {
+        padding: 0 10px;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+        overflow: hidden;
+        border: 1px solid #f1f5f9;
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .users-table th {
+        background: #f8fafc;
+        padding: 20px 24px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .users-table td {
+        padding: 24px;
+        border-bottom: 1px solid #f8fafc;
+        vertical-align: middle;
+    }
+
+    .user-info-cell {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .avatar {
+        min-width: 42px;
+        height: 42px;
+        background: #e8f7ea;
+        color: #4cc253;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.1rem;
+        box-shadow: 0 4px 10px rgba(76, 194, 83, 0.1);
+    }
+
+    .user-name-text {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1rem;
+    }
+
+    .code-badge {
+        background: #f1f5f9;
+        padding: 6px 12px;
+        border-radius: 10px;
+        font-family: inherit;
+        font-weight: 700;
+        color: #475569;
+        font-size: 0.85rem;
+    }
+
+    .role-badge {
+        display: inline-flex;
+        padding: 6px 14px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .role-badge.admin {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+    .role-badge.supervisor {
+        background: #fef3c7;
+        color: #d97706;
+    }
+    .role-badge.analista {
+        background: #e0f2fe;
+        color: #0284c7;
+    }
+
+    .perms-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: 300px;
+    }
+
+    .perm-tag {
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 8px;
+        border: 1px solid #edf2f7;
+        font-weight: 600;
+    }
+
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+
+    .status-indicator::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .status-indicator.active {
+        color: #10b981;
+    }
+    .status-indicator.active::before {
+        background: #10b981;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    .actions-col {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .btn-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .btn-icon.edit {
+        background: #f1f5f9;
+        color: #64748b;
+    }
+    .btn-icon.delete {
+        background: #fff1f2;
+        color: #ef4444;
+    }
+
+    .btn-icon:hover {
+        transform: scale(1.1) translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-icon.edit:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+    .btn-icon.delete:hover {
+        background: #fee2e2;
+        color: #dc2626;
+    }
+
+    /* Modal */
+    .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        backdrop-filter: blur(8px);
+    }
+
+    .modal.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        background: white;
+        width: 100%;
+        max-width: 680px;
+        border-radius: 32px;
+        box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.25);
+        padding: 40px;
+        transform: scale(0.9) translateY(20px);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal.open .modal-content {
+        transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+    }
+
+    .modal-header h2 {
+        font-size: 1.8rem;
+        font-weight: 850;
+        color: #0f172a;
+        letter-spacing: -1px;
+    }
+
+    .btn-close {
+        background: #f1f5f9;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        cursor: pointer;
+        color: #64748b;
+        transition: all 0.2s;
+    }
+
+    .btn-close:hover {
+        background: #e2e8f0;
+        color: #ef4444;
+        transform: rotate(90deg);
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-group input,
+    .form-group select {
+        padding: 14px 18px;
+        border: 2px solid #f1f5f9;
+        border-radius: 16px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+        background: #f8fafc;
+        transition: all 0.3s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        border-color: #4cc253;
+        background: white;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(76, 194, 83, 0.1);
+    }
+
+    /* Permisos UI */
+    .permissions-section {
+        background: #f8fafc;
+        padding: 24px;
+        border-radius: 24px;
+        border: 1px solid #f1f5f9;
+        margin-bottom: 32px;
+    }
+
+    .permissions-section h3 {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: #0f172a;
+        margin-bottom: 6px;
+    }
+
+    .section-desc {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin-bottom: 20px;
+    }
+
+    .permissions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .permission-item input {
+        display: none;
+    }
+
+    .permission-card {
+        background: white;
+        border: 2px solid #edf2f7;
+        padding: 16px;
+        border-radius: 18px;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .p-title {
+        display: block;
+        font-weight: 800;
+        font-size: 0.85rem;
+        margin-bottom: 4px;
+        color: #1e293b;
+    }
+
+    .p-desc {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        line-height: 1.3;
+    }
+
+    .permission-item input:checked + .permission-card {
+        border-color: #4cc253;
+        background: #e8f7ea;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(76, 194, 83, 0.15);
+    }
+
+    .permission-item input:checked + .permission-card .p-title {
+        color: #166534;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 16px;
+        padding-top: 8px;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 1024px) {
+        .permissions-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+        .permissions-grid {
+            grid-template-columns: 1fr;
+        }
+        .modal-content {
+            padding: 30px 20px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .users-table th:nth-child(2),
+        .users-table td:nth-child(2),
+        .users-table th:nth-child(4),
+        .users-table td:nth-child(4) {
+            display: none;
+        }
+    }
+</style>
+```

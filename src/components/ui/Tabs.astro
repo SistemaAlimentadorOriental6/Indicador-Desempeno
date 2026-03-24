@@ -1,0 +1,94 @@
+---
+import Icon from "./Icon.astro";
+
+interface Filtro {
+    nombre: string;
+    count: number;
+    icon?: any;
+    activo?: boolean;
+    color?: string;
+}
+
+interface Props {
+    filtros: Filtro[];
+}
+
+const { filtros } = Astro.props;
+---
+
+<div class="tabs-section">
+    <div class="tabs-container">
+        {
+            filtros.map((filtro) => (
+                <button class={`tab-btn ${filtro.activo ? "active" : ""}`}>
+                    {filtro.icon && (
+                        <span class="tab-icon">
+                            <Icon
+                                name={filtro.icon}
+                                size={18}
+                                color={filtro.color}
+                            />
+                        </span>
+                    )}
+                    <span class="tab-name">{filtro.nombre}</span>
+                    <span class="tab-count">{filtro.count}</span>
+                </button>
+            ))
+        }
+    </div>
+</div>
+
+<style>
+    .tabs-section {
+        margin-bottom: 20px;
+    }
+    .tabs-container {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .tab-btn {
+        padding: 10px 20px;
+        background: white;
+        border: none;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        box-shadow: var(--sombra-suave);
+        transition: all 0.25s;
+        white-space: nowrap;
+    }
+
+    .tab-btn.active {
+        background: var(--color-primario);
+        color: white;
+        box-shadow: var(--sombra-primaria);
+    }
+
+    .tab-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .tab-icon :global(svg) {
+        width: 18px;
+        height: 18px;
+    }
+
+    .tab-count {
+        padding: 2px 8px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .tab-btn.active .tab-count {
+        background: rgba(255, 255, 255, 0.2);
+    }
+</style>

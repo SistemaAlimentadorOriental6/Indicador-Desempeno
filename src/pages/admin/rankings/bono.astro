@@ -1,0 +1,409 @@
+---
+import AdminLayout from "@layouts/AdminLayout.astro";
+import HeaderCard from "@components/ui/HeaderCard.astro";
+import SearchFilters from "@components/rankings/SearchFilters.astro";
+---
+
+<AdminLayout titulo="Estadísticas de Bono 100%">
+    <div id="bono-ranking-view" class="animate-entrance">
+        <HeaderCard
+            titulo="Estadísticas de Bono 100%"
+            subtitulo="Distribución de operadores con cumplimiento perfecto por rango"
+        >
+            <div slot="icon" class="header-icon-premium">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                >
+                    <path d="M12 20V10"></path>
+                    <path d="M18 20V4"></path>
+                    <path d="M6 20v-4"></path>
+                </svg>
+            </div>
+        </HeaderCard>
+
+        <SearchFilters resultados={0} />
+
+        <div class="chart-section">
+            <div class="chart-container-premium">
+                <div class="chart-header">
+                    <h3>Cumplimiento de Bono por Rango</h3>
+                    <p class="chart-subtitle">Operadores con 100% de cumplimiento en el periodo seleccionado</p>
+                </div>
+                <div class="chart-canvas-wrapper">
+                    <canvas id="bonoChart"></canvas>
+                    <div id="no-data-msg" class="hidden">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <p>No hay datos suficientes para el periodo seleccionado</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-summary-premium" id="stats-summary">
+                <!-- Se llenará dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        import { FiltroService } from "@services/FiltroService";
+        import { BonoService, type OperadorBono } from "@services/BonoService";
+        import Chart from "chart.js/auto";
+
+        let allOperators: OperadorBono[] = [];
+        let filteredOperators: OperadorBono[] = [];
+        let currentFilters = FiltroService.obtenerDeUrl();
+        let myChart: Chart | null = null;
+
+        const RANGE_COLORS: Record<string, { bg: string; border: string; light: string }> = {
+            Oro: { bg: "#eab308", border: "#ca8a04", light: "#fef9c3" }, 
+            Plata: { bg: "#94a3b8", border: "#475569", light: "#f1f5f9" },
+            Bronce: { bg: "#f97316", border: "#ea580c", light: "#ffedd5" },
+            Mejorar: { bg: "#ea580c", border: "#9a3412", light: "#fff7ed" },
+        };
+
+        async function init() {
+            await loadData();
+            
+            // Emitir cargos para el modal de filtros (como en operadores.astro)
+            const cargosPermitidos = [
+                "OPERADOR",
+                "OPERADOR DUAL",
+                "OPERADOR REUBICADO",
+                "OPERADOR REPOSTAJE",
+                "OPERADOR DIAGNOSTICO",
+                "OPERADOR DE ALISTAMIENTO",
+                "OPERADOR 1.5 SMLV"
+            ].sort();
+            
+            document.dispatchEvent(new CustomEvent("cargosLoaded", {
+                detail: cargosPermitidos
+            }));
+        }
+
+        async function loadData() {
+            try {
+                // Mostrar carga en la UI si fuera necesario
+                allOperators = await BonoService.obtenerOperadoresConBono(currentFilters);
+                updateUI();
+            } catch (error) {
+                console.error("Error al cargar datos:", error);
+            }
+        }
+
+        function updateUI() {
+            filteredOperators = BonoService.filtrarOperadores(allOperators, currentFilters);
+            const stats = BonoService.calcularEstadisticas(filteredOperators);
+
+            updateSummary(stats.porRango, stats.total);
+            renderChart(stats.porRango);
+
+            // Actualizar contador en SearchFilters
+            const countEl = document.querySelector(".search-info p");
+            if (countEl) countEl.textContent = `${stats.total} operadores con 100% bono`;
+
+            // Notificar a ModalFiltros para actualizar sus conteos (si aplica)
+            const apiCounts = {
+                all: filteredOperators.length,
+                active: filteredOperators.filter((op: OperadorBono) => op.isActive).length,
+                inactive: filteredOperators.filter((op: OperadorBono) => !op.isActive).length,
+                novelty: 0 // No manejamos novedades aquí por ahora
+            };
+            document.dispatchEvent(new CustomEvent("updateFilterCounts", { detail: apiCounts }));
+        }
+
+        function updateSummary(porRango: Record<string, number>, total: number) {
+            const container = document.getElementById("stats-summary");
+            if (!container) return;
+
+            const icons: Record<string, string> = {
+                total: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
+                oro: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>`,
+                plata: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"></circle><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"></path></svg>`,
+                bronce: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.477 12.89 1.523 9.11-5-3-5 3 1.523-9.11"></path><path d="M17 8A5 5 0 1 0 7 8a5 5 0 0 0 10 0Z"></path><path d="M17 8A5 5 0 1 0 7 8a5 5 0 0 0 10 0Z"></path><circle cx="12" cy="8" r="3"></circle></svg>`,
+                mejorar: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 9-7 7-7-7"></path></svg>`
+            };
+
+            const cards = [
+                { key: 'total', label: 'Total General', value: total, color: 'var(--color-primario)' },
+                ...Object.entries(porRango).map(([rango, count]) => ({
+                    key: rango.toLowerCase().replace(/\s+/g, '-'),
+                    label: rango,
+                    value: count,
+                    color: RANGE_COLORS[rango]?.bg || '#ccc'
+                }))
+            ];
+
+            container.innerHTML = cards.map(card => `
+                <div class="stat-card-premium ${card.key}">
+                    <div class="card-glow" style="background: ${card.color}"></div>
+                    <div class="card-content">
+                        <div class="stat-header">
+                            <span class="stat-label">${card.label}</span>
+                            <div class="stat-icon" style="color: ${card.color}">
+                                ${icons[card.key] || ''}
+                            </div>
+                        </div>
+                        <div class="stat-body">
+                            <span class="stat-value">${card.value}</span>
+                            <span class="stat-unit">Operadores</span>
+                        </div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function renderChart(porRango: Record<string, number>) {
+            const ctx = document.getElementById("bonoChart") as HTMLCanvasElement;
+            const noData = document.getElementById("no-data-msg");
+            if (!ctx) return;
+
+            const labels = Object.keys(porRango);
+            const data = Object.values(porRango);
+            const total = data.reduce((a, b) => a + b, 0);
+
+            if (total === 0) {
+                ctx.style.display = 'none';
+                noData?.classList.remove('hidden');
+                return;
+            } else {
+                ctx.style.display = 'block';
+                noData?.classList.add('hidden');
+            }
+
+            const backgroundColors = labels.map(l => RANGE_COLORS[l]?.bg || "#ccc");
+            const borderColors = labels.map(l => RANGE_COLORS[l]?.border || "#999");
+
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Operadores',
+                        data: data,
+                        backgroundColor: backgroundColors.map(c => c + 'CC'), // 80% opacidad
+                        borderColor: borderColors,
+                        borderWidth: 2,
+                        borderRadius: 12,
+                        barThickness: 60,
+                        hoverBackgroundColor: backgroundColors,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#1e293b',
+                            bodyColor: '#475569',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 15,
+                            displayColors: true,
+                            bodyFont: { size: 14, family: "'Outfit', sans-serif" },
+                            titleFont: { size: 16, weight: 'bold', family: "'Outfit', sans-serif" },
+                            callbacks: {
+                                label: (context) => ` ${context.parsed.y} Operadores con bono perfecto`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9', drawBorder: false },
+                            ticks: { 
+                                color: '#64748b', 
+                                font: { family: "'Outfit', sans-serif", size: 12 },
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { 
+                                color: '#1e293b', 
+                                font: { family: "'Outfit', sans-serif", size: 13, weight: 'bold' } 
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutElastic'
+                    }
+                }
+            });
+        }
+
+        // Event Listeners
+        document.addEventListener("applyFilters", (e: any) => {
+            currentFilters = { ...currentFilters, ...e.detail };
+            loadData();
+        });
+
+        document.querySelector(".input-premium")?.addEventListener("input", (e: any) => {
+            currentFilters.busqueda = e.target.value;
+            updateUI();
+        });
+
+        // Inicializar al cargar la página (soporte para Astro View Transitions)
+        document.addEventListener("astro:page-load", () => {
+            init();
+        });
+    </script>
+
+    <style>
+        #bono-ranking-view {
+            padding-bottom: 60px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header-icon-premium {
+            background: linear-gradient(135deg, var(--color-primario), #3bad48);
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: var(--sombra-primaria);
+            color: white;
+        }
+
+        .chart-section {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 25px;
+            margin-top: 25px;
+        }
+
+        @media (max-width: 1024px) {
+            .chart-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container-premium {
+            background: white;
+            border-radius: var(--radio-lg);
+            padding: 35px;
+            box-shadow: var(--sombra-suave);
+            border: 1px solid rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            min-height: 550px;
+        }
+
+        .chart-header {
+            margin-bottom: 30px;
+        }
+
+        .chart-header h3 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--color-texto-dark);
+            margin-bottom: 5px;
+        }
+
+        .chart-subtitle {
+            color: var(--color-texto-grey);
+            font-size: 0.95rem;
+        }
+
+        .chart-canvas-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 350px;
+        }
+
+        #no-data-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--color-texto-grey);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .stats-summary-premium {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .stat-card-premium {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--sombra-suave);
+            border: 1px solid rgba(0,0,0,0.02);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: default;
+        }
+
+        .stat-card-premium:hover {
+            transform: translateX(5px);
+            box-shadow: var(--sombra-premium);
+        }
+
+        .card-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            opacity: 0.8;
+        }
+
+        .stat-header {
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--color-texto-grey);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-body {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--color-texto-dark);
+            line-height: 1;
+        }
+
+        .stat-unit {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-texto-grey);
+        }
+
+        /* Estilos específicos por card para colores de texto */
+        .stat-card-premium.total .stat-value { color: var(--color-primario); }
+        .stat-card-premium.oro .stat-value { color: #d4af37; }
+        .stat-card-premium.plata .stat-value { color: #64748b; }
+        .stat-card-premium.bronce .stat-value { color: #b45309; }
+        .stat-card-premium.mejorar .stat-value { color: #ea580c; }
+
+        .hidden { display: none !important; }
+    </style>
+</AdminLayout>

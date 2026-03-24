@@ -1,0 +1,1028 @@
+---
+import OperatorLayout from "@layouts/OperatorLayout.astro";
+import WelcomeHeader from "@components/operadores/desempeno/WelcomeHeader.astro";
+import SectionTitle from "@components/operadores/desempeno/SectionTitle.astro";
+import StatCard from "@components/operadores/desempeno/StatCard.astro";
+import ChartWrapper from "@components/operadores/desempeno/ChartWrapper.astro";
+import AnnualYearsSummary from "@components/operadores/desempeno/AnnualYearsSummary.astro";
+import MonthlyGrid from "@components/operadores/desempeno/MonthlyGrid.astro";
+import MetricStats from "@components/operadores/desempeno/MetricStats.astro";
+
+// Estructuras iniciales vacías (se llenarán via Script con datos reales)
+const years: any[] = [];
+
+const months = Array(12)
+    .fill(null)
+    .map((_, i) => ({
+        name: [
+            "Ene",
+            "Feb",
+            "Mar",
+            "Abr",
+            "May",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dic",
+        ][i],
+        value: "---",
+        color: "",
+    }));
+
+const kmMonths = months.map((m) => ({ ...m, sub: "0 km" }));
+
+const bonusMonths = months.map((m) => ({ ...m, sub: "$0" }));
+---
+
+<OperatorLayout titulo="Resumen de Desempeño">
+    <WelcomeHeader name="ROSMY" />
+
+    <div class="main-sections-container">
+        <!-- SECCIÓN 1: RESUMEN DE PROGRESO -->
+        <section class="progress-summary">
+            <SectionTitle title="Resumen de Progreso" icon="activity" />
+
+            <div class="dashboard-grid">
+                <StatCard
+                    id="annual-card"
+                    title="Progreso Anual"
+                    subtitle="HISTORIAL DE EVOLUCIÓN"
+                    icon="activity"
+                    iconClass="success"
+                >
+                    <div class="chart-section">
+                        <div class="chart-title-tag" id="annual-chart-title">
+                            Evolución Anual
+                        </div>
+                        <div class="chart-info">
+                            <i class="dot"></i>
+                            <span id="annual-chart-subtitle"
+                                >Rendimiento Mensual</span
+                            >
+                        </div>
+                        <ChartWrapper id="annualChart" />
+                    </div>
+
+                    <AnnualYearsSummary years={years} />
+
+                    <div class="current-year-focus">
+                        <span class="label">Rendimiento Promedio Anual</span>
+                        <div class="value">
+                            <span id="annual-year-label">--</span>
+                            <span class="score" id="annual-score">0%</span>
+                        </div>
+                        <div class="stat-footer-line">
+                            <span>Meses Procesados</span>
+                            <strong id="processed-months">0/12</strong>
+                        </div>
+                    </div>
+
+                    <div class="progress-metrics">
+                        <MetricStats
+                            id="stat-km-mini"
+                            label="Kilómetros"
+                            value="---"
+                            percentage="0%"
+                            colorClass="primary"
+                        />
+                        <MetricStats
+                            id="stat-bonus-mini"
+                            label="Bonificaciones"
+                            value="---"
+                            percentage="0%"
+                            colorClass="primary"
+                        />
+                    </div>
+                </StatCard>
+
+                <StatCard
+                    id="efficiency-card"
+                    title="Eficiencia Mensual"
+                    subtitle="RENDIMIENTO POR MES"
+                    icon="activity"
+                    iconClass="primary"
+                >
+                    <div class="chart-section">
+                        <div class="chart-title-tag">Evolución Detallada</div>
+                        <ChartWrapper id="monthlyChart" />
+                    </div>
+
+                    <MonthlyGrid months={months} />
+
+                    <div class="stat-footer-line border-top">
+                        <span>Puntaje más bajo</span>
+                        <strong class="text-danger">44.8%</strong>
+                    </div>
+                    <div class="progress-detailed">
+                        <span class="main-value" id="efficiency-value">0%</span>
+                        <span class="main-label"
+                            >EFICIENCIA GENERAL <span id="efficiency-year-label"
+                                >--</span
+                            ></span
+                        >
+                    </div>
+                </StatCard>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: DATOS OPERATIVOS -->
+        <section class="operational-data">
+            <SectionTitle title="Datos Operativos" icon="activity" />
+
+            <div class="secondary-grid">
+                <StatCard
+                    id="km-card"
+                    title="Kilómetros"
+                    subtitle="RECORRIDO Y EFICIENCIA"
+                    icon="activity"
+                    iconClass="dark"
+                >
+                    <div class="chart-section">
+                        <ChartWrapper id="kmChart" />
+                    </div>
+
+                    <MonthlyGrid months={kmMonths} />
+
+                    <div class="huge-stat">
+                        <span class="value" id="km-total-value">0 km</span>
+                        <span class="label"
+                            >TOTAL RECORRIDO <span id="km-year-label">--</span
+                            ></span
+                        >
+                    </div>
+
+                    <MetricStats
+                        id="km-overall-progress"
+                        label="Progreso"
+                        value="0%"
+                        percentage="0%"
+                    />
+                </StatCard>
+
+                <StatCard
+                    id="bonus-card"
+                    title="Bonificaciones"
+                    subtitle="INCENTIVOS LOGRADOS"
+                    icon="activity"
+                    iconClass="primary"
+                >
+                    <div class="chart-section">
+                        <ChartWrapper id="bonusChart" />
+                    </div>
+
+                    <MonthlyGrid months={bonusMonths} />
+
+                    <div class="huge-stat">
+                        <span class="value" id="bonus-total-value">$0</span>
+                        <span class="label"
+                            >TOTAL BONIFICADO <span id="bonus-year-label"
+                                >--</span
+                            ></span
+                        >
+                    </div>
+
+                    <MetricStats
+                        id="bonus-overall-progress"
+                        label="Eficiencia"
+                        value="0%"
+                        percentage="0%"
+                    />
+                </StatCard>
+            </div>
+        </section>
+    </div>
+
+    <style>
+        .main-sections-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            animation: fadeIn 0.8s ease-out;
+            padding-bottom: 50px;
+        }
+
+        .dashboard-grid,
+        .secondary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid,
+            .secondary-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 20px;
+            }
+        }
+
+        .chart-section {
+            margin-bottom: 35px;
+            background: #fdfdfd;
+            padding: 25px;
+            border-radius: 28px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .chart-title-tag {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--color-primario);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .chart-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 25px;
+        }
+        .chart-info .dot {
+            width: 8px;
+            height: 8px;
+            background: var(--color-primario);
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(var(--vs-primary-raw), 0.4);
+        }
+
+        .current-year-focus {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 28px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 1px solid #f1f5f9;
+            position: relative;
+        }
+        .current-year-focus::before {
+            content: "";
+            position: absolute;
+            top: 20%;
+            left: 0;
+            width: 4px;
+            height: 60%;
+            background: var(--color-primario);
+            border-radius: 0 4px 4px 0;
+        }
+        .current-year-focus .label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: block;
+            letter-spacing: 1.5px;
+        }
+        .current-year-focus .value {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #1e293b;
+        }
+        .current-year-focus .score {
+            font-size: 3.5rem;
+            font-weight: 950;
+            color: var(--color-primario);
+            margin-top: 8px;
+            display: block;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+
+        .stat-footer-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-top: 1px solid #f1f5f9;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #64748b;
+        }
+        .stat-footer-line strong {
+            color: #0f172a;
+            font-weight: 850;
+        }
+        .stat-footer-line.border-top {
+            margin-top: 15px;
+            margin-bottom: 15px;
+        }
+
+        .progress-detailed {
+            text-align: center;
+            padding: 25px 0;
+        }
+        .progress-detailed .main-value {
+            font-size: 3.5rem;
+            font-weight: 950;
+            color: #0c1c2e;
+            display: block;
+            line-height: 1;
+            letter-spacing: -2px;
+        }
+        .progress-detailed .main-label {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #94bc94;
+            text-transform: uppercase;
+            margin-top: 12px;
+            display: block;
+            letter-spacing: 1.5px;
+        }
+
+        .progress-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: #f8fafc;
+            padding: 25px;
+            border-radius: 28px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .huge-stat {
+            text-align: center;
+            margin: 30px 0;
+            padding: 25px;
+            background: #f8fafc;
+            border-radius: 28px;
+            border: 1px solid #f1f5f9;
+        }
+        .huge-stat .value {
+            font-size: 2.5rem;
+            font-weight: 950;
+            color: var(--color-primario);
+            display: block;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+        .huge-stat .label {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: #94a3b8;
+            text-transform: uppercase;
+            margin-top: 10px;
+            display: block;
+            letter-spacing: 1.5px;
+        }
+
+        .text-danger {
+            color: #ef4444;
+        }
+        .text-success {
+            color: var(--color-primario);
+        }
+
+        @media (max-width: 768px) {
+            .main-sections-container {
+                gap: 30px;
+            }
+            .current-year-focus .score {
+                font-size: 2.2rem;
+            }
+            .progress-detailed .main-value {
+                font-size: 2.5rem;
+            }
+            .huge-stat .value {
+                font-size: 1.8rem;
+            }
+            .chart-section {
+                padding: 15px;
+                border-radius: 18px;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        import { API_CONFIG, getApiUrl } from "@config/api";
+        // @ts-ignore
+        declare const Chart: any;
+
+        document.addEventListener("astro:page-load", async () => {
+            const chartFont = {
+                family: "'Outfit', sans-serif",
+                size: 11,
+                weight: 500,
+            };
+            const commonGrid = { color: "rgba(0,0,0,0.03)", drawBorder: false };
+            const colors = {
+                success: "#46c93a",
+                danger: "#ff4757",
+                warning: "#ffba00",
+                primary: "#4cc253",
+                primarySoft: "rgba(76, 194, 83, 0.1)",
+                primaryMedium: "rgba(76, 194, 83, 0.4)",
+                grey: "#a0a6ae",
+                greenDark: "#012921",
+            };
+
+            const userDataStr = localStorage.getItem("user_data");
+            if (!userDataStr) return; // Si no hay usuario, no hacemos nada (o redirigimos)
+
+            const user = JSON.parse(userDataStr);
+            console.log("Cargando desempeño para:", user.codigo);
+
+            // Actualizar nombre en el header si existe
+            const nameEl = document.querySelector(".name-wrapper");
+            if (nameEl && user.nombre) {
+                // Mantener el emoji 👋
+                nameEl.innerHTML = `${user.nombre.split(" ")[0]} <span class="wave">👋</span>`;
+            }
+
+            const currentYear = new Date().getFullYear();
+
+            // Cargar datos iniciales detectando el año con registros más reciente
+            initDashboard();
+            async function initDashboard() {
+                try {
+                    const response = await fetch(
+                        getApiUrl(
+                            `${API_CONFIG.ENDPOINTS.DESEMPENO.GET_YEARS}/${user.codigo}/anios`,
+                        ),
+                    );
+                    if (!response.ok) {
+                        loadYearData(currentYear);
+                        return;
+                    }
+                    const result = await response.json();
+                    // El backend puede devolver [2025, 2024] o [{anio: 2025}]
+                    const yearsList = result
+                        .map((r: any) =>
+                            typeof r === "object"
+                                ? r.anio || r.year || r.ANIO
+                                : r,
+                        )
+                        .filter((y: any) => y != null && !isNaN(y));
+
+                    if (yearsList.length > 0) {
+                        const latestYear = Math.max(...yearsList);
+                        updateYearSelectors(yearsList, latestYear);
+                        updateYearsSummary(yearsList, latestYear);
+                        loadYearData(latestYear);
+                    } else {
+                        loadYearData(currentYear);
+                    }
+                } catch (e) {
+                    console.error("Error inicializando dashboard:", e);
+                    loadYearData(currentYear);
+                }
+            }
+
+            async function loadYearData(anio: number) {
+                try {
+                    const response = await fetch(
+                        getApiUrl(
+                            `${API_CONFIG.ENDPOINTS.DESEMPENO.GET_METRICS}/${user.codigo}?anio=${anio}`,
+                        ),
+                    );
+                    if (!response.ok) throw new Error("Error cargando datos");
+
+                    const data = await response.json();
+                    updateDashboard(data, anio);
+                    initCharts(data, anio);
+
+                    // Actualizar estado activo en las tarjetas de resumen
+                    document.querySelectorAll(".year-item").forEach((item) => {
+                        const yearName =
+                            item.querySelector(".y-name")?.textContent;
+                        if (yearName === String(anio)) {
+                            item.classList.add("active");
+                        } else {
+                            item.classList.remove("active");
+                        }
+                    });
+                } catch (error) {
+                    console.error("Error fetching performance data:", error);
+                }
+            }
+
+            function updateYearSelectors(
+                yearsList: number[],
+                selectedYear: number,
+            ) {
+                const selects = document.querySelectorAll(".clean-select");
+                selects.forEach((select) => {
+                    const s = select as HTMLSelectElement;
+                    s.innerHTML = "";
+                    yearsList.forEach((y) => {
+                        const opt = document.createElement("option");
+                        opt.value = String(y);
+                        opt.textContent = String(y);
+                        if (y === selectedYear) opt.selected = true;
+                        s.appendChild(opt);
+                    });
+
+                    s.onchange = (e) => {
+                        const target = e.target as HTMLSelectElement;
+                        const year = Number(target.value);
+                        // Sincronizar otros selectores de año
+                        selects.forEach((sel) => {
+                            if (sel !== s)
+                                (sel as HTMLSelectElement).value = String(year);
+                        });
+                        loadYearData(year);
+                    };
+                });
+            }
+
+            async function updateYearsSummary(
+                yearsList: number[],
+                selectedYear: number,
+            ) {
+                const summaryContainer =
+                    document.querySelector(".years-summary");
+                if (!summaryContainer) return;
+
+                summaryContainer.innerHTML = "";
+                for (const year of yearsList.slice(0, 3)) {
+                    const item = document.createElement("div");
+                    item.className = `year-item ${year === selectedYear ? "active" : ""}`;
+
+                    if (year === currentYear) {
+                        const badge = document.createElement("div");
+                        badge.className = "active-badge";
+                        badge.textContent = "ACTUAL";
+                        item.appendChild(badge);
+                    }
+
+                    const valSpan = document.createElement("span");
+                    valSpan.className = "y-val";
+                    valSpan.id = `summary-val-${year}`;
+                    valSpan.textContent = "...%";
+
+                    const nameSpan = document.createElement("span");
+                    nameSpan.className = "y-name";
+                    nameSpan.textContent = String(year);
+
+                    item.appendChild(valSpan);
+                    item.appendChild(nameSpan);
+                    summaryContainer.appendChild(item);
+                    fetchYearSummary(year);
+                }
+            }
+
+            async function fetchYearSummary(year: number) {
+                try {
+                    const response = await fetch(
+                        getApiUrl(
+                            `${API_CONFIG.ENDPOINTS.DESEMPENO.GET_METRICS}/${user.codigo}?anio=${year}`,
+                        ),
+                    );
+                    const data = await response.json();
+                    const el = document.getElementById(`summary-val-${year}`);
+                    if (el && data && data.cumplimientoTotal !== undefined) {
+                        const score = data.cumplimientoTotal || 0;
+                        el.textContent = `${score}%`;
+                        el.style.color = getColorFromValue(score);
+                    }
+                } catch (e) {}
+            }
+
+            function getColorFromValue(val: number) {
+                if (val >= 95) return "#10b981";
+                if (val >= 85) return "#f59e0b";
+                return "#ef4444";
+            }
+
+            function updateDashboard(data: any, anio: number) {
+                const vars = data.variables || {};
+
+                // Actualizar todos los labels de año dinámicamente
+                [
+                    "annual-year-label",
+                    "efficiency-year-label",
+                    "km-year-label",
+                    "bonus-year-label",
+                ].forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = String(anio);
+                });
+                const chartTitle =
+                    document.getElementById("annual-chart-title");
+                if (chartTitle)
+                    chartTitle.textContent = `Evolución Anual ${anio}`;
+                const chartSubtitle = document.getElementById(
+                    "annual-chart-subtitle",
+                );
+                if (chartSubtitle)
+                    chartSubtitle.textContent = `Rendimiento Mensual ${anio}`;
+
+                // Calcular promedio real: solo meses con registros
+                const mesesConDatos = data.mensual.filter(
+                    (m: any) => m.registros > 0,
+                );
+                const promedioReal =
+                    mesesConDatos.length > 0
+                        ? Math.round(
+                              (mesesConDatos.reduce(
+                                  (s: number, m: any) => s + m.cumplimiento,
+                                  0,
+                              ) /
+                                  mesesConDatos.length) *
+                                  10,
+                          ) / 10
+                        : 0;
+
+                // --- 1. SECCIÓN: PROGRESO ANUAL ---
+                const annualCard = document.getElementById("annual-card");
+                if (annualCard) {
+                    // Usar el promedio consistente (igual que Eficiencia General)
+                    const scoreEl = document.getElementById("annual-score");
+                    if (scoreEl) scoreEl.textContent = `${promedioReal}%`;
+
+                    const processedMonthsEl =
+                        document.getElementById("processed-months");
+                    if (processedMonthsEl)
+                        processedMonthsEl.textContent = `${mesesConDatos.length}/12`;
+
+                    // Mini stats KM / Bono: calcular promedio de meses con datos por variable
+                    const kmVar = vars["KMS"] || vars["KM"];
+                    if (kmVar) {
+                        const kmMesesOk = (kmVar.mensual || []).filter(
+                            (m: any) => m.registros > 0,
+                        );
+                        const kmProm =
+                            kmMesesOk.length > 0
+                                ? Math.round(
+                                      (kmMesesOk.reduce(
+                                          (s: number, m: any) =>
+                                              s + m.cumplimiento,
+                                          0,
+                                      ) /
+                                          kmMesesOk.length) *
+                                          10,
+                                  ) / 10
+                                : 0;
+                        updateMetricStats("stat-km-mini", kmProm);
+                    }
+                    const bonusVar =
+                        vars["BONO"] || vars["BONIFICACION"] || vars["BONOS"];
+                    if (bonusVar) {
+                        const bonMesesOk = (bonusVar.mensual || []).filter(
+                            (m: any) => m.registros > 0,
+                        );
+                        const bonProm =
+                            bonMesesOk.length > 0
+                                ? Math.round(
+                                      (bonMesesOk.reduce(
+                                          (s: number, m: any) =>
+                                              s + m.cumplimiento,
+                                          0,
+                                      ) /
+                                          bonMesesOk.length) *
+                                          10,
+                                  ) / 10
+                                : 0;
+                        updateMetricStats("stat-bonus-mini", bonProm);
+                    }
+                }
+
+                // --- 2. SECCIÓN: EFICIENCIA MENSUAL ---
+                const efficiencyCard =
+                    document.getElementById("efficiency-card");
+                if (efficiencyCard) {
+                    const grid = efficiencyCard.querySelector(".months-grid");
+
+                    const bigValue =
+                        document.getElementById("efficiency-value");
+                    if (bigValue) bigValue.textContent = `${promedioReal}%`;
+
+                    // Puntaje más bajo (solo meses con datos)
+                    const minEl = efficiencyCard.querySelector(".text-danger");
+                    if (minEl && mesesConDatos.length > 0) {
+                        const minVal = Math.min(
+                            ...mesesConDatos.map((m: any) => m.cumplimiento),
+                        );
+                        (minEl as HTMLElement).textContent = `${minVal}%`;
+                    }
+
+                    if (grid) updateMonthsGrid(grid, data.mensual);
+                }
+
+                // --- 3. SECCIÓN: KILÓMETROS ---
+                const kmCard = document.getElementById("km-card");
+                const kmData = vars["KMS"] || vars["KM"];
+                if (kmCard && kmData) {
+                    const grid = kmCard.querySelector(".months-grid");
+                    if (grid) updateMonthsGrid(grid, kmData.mensual, true);
+
+                    const totalEl = document.getElementById("km-total-value");
+                    if (totalEl)
+                        totalEl.textContent = `${kmData.totalEjecutado.toLocaleString()} km`;
+
+                    const kmMesesOk = (kmData.mensual || []).filter(
+                        (m: any) => m.registros > 0,
+                    );
+                    const kmProm =
+                        kmMesesOk.length > 0
+                            ? Math.round(
+                                  (kmMesesOk.reduce(
+                                      (s: number, m: any) => s + m.cumplimiento,
+                                      0,
+                                  ) /
+                                      kmMesesOk.length) *
+                                      10,
+                              ) / 10
+                            : 0;
+                    updateMetricStats("km-overall-progress", kmProm);
+                }
+
+                // --- 4. SECCIÓN: BONIFICACIONES ---
+                const bonusCard = document.getElementById("bonus-card");
+                const bonusData =
+                    vars["BONO"] || vars["BONIFICACION"] || vars["BONOS"];
+                if (bonusCard && bonusData) {
+                    const grid = bonusCard.querySelector(".months-grid");
+                    if (grid)
+                        updateMonthsGrid(grid, bonusData.mensual, true, true);
+
+                    const totalEl =
+                        document.getElementById("bonus-total-value");
+                    if (totalEl)
+                        totalEl.textContent = `$${bonusData.totalEjecutado.toLocaleString()}`;
+
+                    const bonMesesOk = (bonusData.mensual || []).filter(
+                        (m: any) => m.registros > 0,
+                    );
+                    const bonProm =
+                        bonMesesOk.length > 0
+                            ? Math.round(
+                                  (bonMesesOk.reduce(
+                                      (s: number, m: any) => s + m.cumplimiento,
+                                      0,
+                                  ) /
+                                      bonMesesOk.length) *
+                                      10,
+                              ) / 10
+                            : 0;
+                    updateMetricStats("bonus-overall-progress", bonProm);
+                }
+            }
+
+            function updateMonthsGrid(
+                gridEl: Element,
+                mensual: any[],
+                showValueAsSub: boolean = false,
+                isCurrency: boolean = false,
+            ) {
+                const items = gridEl.querySelectorAll(".month-item");
+                mensual.forEach((mes: any, idx: number) => {
+                    if (items[idx]) {
+                        const valEl = items[idx].querySelector(".m-val");
+                        const subEl = items[idx].querySelector(".m-sub");
+
+                        if (valEl) valEl.textContent = `${mes.cumplimiento}%`;
+
+                        if (subEl && showValueAsSub) {
+                            let valStr = "";
+                            if (isCurrency) {
+                                valStr = `$${Math.round(mes.valorEjecutado).toLocaleString()}`;
+                            } else {
+                                valStr =
+                                    mes.valorEjecutado >= 1000
+                                        ? `${(mes.valorEjecutado / 1000).toFixed(1)}K km`
+                                        : `${mes.valorEjecutado} km`;
+                            }
+                            subEl.textContent = valStr;
+                        }
+
+                        // Colores
+                        items[idx].classList.remove(
+                            "success",
+                            "warning",
+                            "danger",
+                        );
+                        items[idx].classList.add(
+                            getColorClass(mes.cumplimiento),
+                        );
+
+                        // Icono de check si hay registros
+                        if (mes.registros > 0) {
+                            if (!items[idx].querySelector(".info-dot")) {
+                                const dot = document.createElement("div");
+                                dot.className = "info-dot";
+                                dot.innerHTML =
+                                    '<svg width="6" height="6" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                                items[idx].appendChild(dot);
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateMetricStats(id: string, percentageValue: number) {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                const fill = el.querySelector(".fill") as HTMLElement;
+                const val = el.querySelector("strong");
+
+                if (fill) fill.style.width = `${percentageValue}%`;
+                if (val) val.textContent = `${percentageValue}%`;
+            }
+
+            function getColorClass(val: number) {
+                if (val >= 95) return "success";
+                if (val >= 85) return "warning";
+                return "danger";
+            }
+
+            function initCharts(data: any) {
+                const vars = data.variables || {};
+                const kmData = vars["KMS"] || vars["KM"];
+                console.log("Graficando KM con datos:", kmData);
+                // const bonusData = vars["BONO"] || vars["BONIFICACION"];
+
+                // Preparar datos para gráficos
+                const labels = data.mensual.map((m: any) => m.nombreMes);
+                const values = data.mensual.map((m: any) => m.cumplimiento);
+
+                const baseOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 2000, easing: "easeOutQuart" },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: "#1e293b",
+                            padding: 12,
+                            cornerRadius: 12,
+                            titleFont: {
+                                family: "Outfit",
+                                size: 13,
+                                weight: "bold",
+                            },
+                            bodyFont: { family: "Outfit", size: 12 },
+                            displayColors: false,
+                            callbacks: {
+                                label: (ctx: any) => `Rendimiento: ${ctx.raw}%`,
+                            },
+                        },
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 120,
+                            grid: commonGrid,
+                            ticks: {
+                                font: chartFont,
+                                color: "#a0a6ae",
+                                padding: 10,
+                            },
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                font: chartFont,
+                                color: "#a0a6ae",
+                                padding: 10,
+                            },
+                        },
+                    },
+                };
+
+                // Gráfico Anual (Real basado en años disponibles)
+                // Obtenemos últimos 4 años o lo que haya
+                const yearsToGraph = [
+                    data.anio - 3,
+                    data.anio - 2,
+                    data.anio - 1,
+                    data.anio,
+                ];
+
+                createBarChart(
+                    "annualChart",
+                    yearsToGraph.map(String),
+                    [0, 0, 0, data.cumplimientoTotal], // Solo llenamos el actual por ahora, o fetch previos
+                    (ctx: any) =>
+                        ctx.dataIndex === 3
+                            ? colors.primary
+                            : colors.primaryMedium,
+                    35,
+                    baseOptions,
+                );
+
+                // Intentar llenar años previos en el gráfico si existen
+                fillHistoricChart(yearsToGraph);
+
+                // Gráfico Mensual (Eficiencia)
+                createBarChart(
+                    "monthlyChart",
+                    labels,
+                    values,
+                    (ctx: any) => {
+                        const val = ctx.raw;
+                        if (val >= 95) return colors.success;
+                        if (val >= 85) return colors.warning;
+                        return colors.danger;
+                    },
+                    12,
+                    baseOptions,
+                );
+
+                // Gráfico KM
+                if (kmData) {
+                    createBarChart(
+                        "kmChart",
+                        labels,
+                        kmData.mensual.map((m: any) => m.cumplimiento),
+                        colors.primary,
+                        12,
+                        baseOptions,
+                    );
+                }
+
+                // Gráfico Bonos
+                const bonusData =
+                    vars["BONO"] || vars["BONIFICACION"] || vars["BONOS"];
+                if (bonusData) {
+                    createBarChart(
+                        "bonusChart",
+                        labels,
+                        bonusData.mensual.map((m: any) => m.cumplimiento),
+                        colors.primary,
+                        12,
+                        baseOptions,
+                    );
+                }
+            }
+
+            async function fillHistoricChart(years: number[]) {
+                const chart = (Chart as any).getChart("annualChart");
+                if (!chart) return;
+
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        const response = await fetch(
+                            getApiUrl(
+                                `${API_CONFIG.ENDPOINTS.DESEMPENO.GET_METRICS}/${user.codigo}?anio=${years[i]}`,
+                            ),
+                        );
+                        if (response.ok) {
+                            const data = await response.json();
+                            chart.data.datasets[0].data[i] =
+                                data.cumplimientoTotal;
+                            chart.update();
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            function createBarChart(
+                id: any,
+                labels: any,
+                data: any,
+                barColor: any,
+                barThickness: any,
+                options: any,
+            ) {
+                const canvas = document.getElementById(id);
+                if (!canvas) return;
+
+                // Destruir gráfico previo si existe
+                // @ts-ignore
+                const existingChart = Chart.getChart(canvas);
+                if (existingChart) existingChart.destroy();
+
+                const ctx = (canvas as HTMLCanvasElement).getContext("2d");
+                // @ts-ignore
+                new Chart(ctx, {
+                    type: "bar",
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                data,
+                                backgroundColor: barColor,
+                                borderRadius: 12,
+                                borderSkipped: false,
+                                barThickness: barThickness,
+                            },
+                        ],
+                    },
+                    options: options,
+                });
+            }
+        });
+    </script>
+</OperatorLayout>

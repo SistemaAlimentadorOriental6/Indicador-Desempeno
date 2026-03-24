@@ -1,0 +1,440 @@
+---
+import Icon from "@components/ui/Icon.astro";
+---
+
+<div
+    id="modal-bono-monthly-detail"
+    class="bono-detail-modal-root"
+    style="display: none;"
+>
+    <div class="bono-detail-overlay"></div>
+    <div class="bono-detail-container">
+        <div class="bono-detail-header">
+            <div class="header-info">
+                <div class="header-top">
+                    <Icon name="calendar" size={20} color="#4cc253" />
+                    <h2 id="bono-det-month">Mes ---</h2>
+                </div>
+                <h3 id="bono-det-year">Año ---</h3>
+            </div>
+            <button type="button" class="close-btn" id="bono-det-close">
+                <Icon name="x" size={24} color="#64748b" />
+            </button>
+        </div>
+
+        <div class="bono-detail-body">
+            <!-- Resumen del Bono en el Mes -->
+            <div class="bono-summary-cards">
+                <div class="b-card">
+                    <span class="label">Bono Final</span>
+                    <span class="value success" id="bono-det-final">$0</span>
+                </div>
+                <div class="b-card">
+                    <span class="label">Descuento Total</span>
+                    <span class="value danger" id="bono-det-discount">$0</span>
+                </div>
+                <div class="b-card">
+                    <span class="label">Cumplimiento</span>
+                    <span class="value primary" id="bono-det-eff">0%</span>
+                </div>
+            </div>
+
+            <div class="novelties-section">
+                <div class="section-title">
+                    <Icon name="alert" size={18} color="#f59e0b" />
+                    <span>Novedades que afectan el bono</span>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="bono-nov-table">
+                        <thead>
+                            <tr>
+                                <th>FECHA</th>
+                                <th>TIPO DE FALTA</th>
+                                <th class="text-center">DÍAS / REGISTROS</th>
+                                <th class="text-right">DEDUCCIÓN</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bono-det-nov-body">
+                            <!-- Inyectado por JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    import { formatCurrency, formatPercent } from "./utils/formatters";
+
+    const el = {
+        root: document.getElementById("modal-bono-monthly-detail"),
+        month: document.getElementById("bono-det-month"),
+        year: document.getElementById("bono-det-year"),
+        final: document.getElementById("bono-det-final"),
+        discount: document.getElementById("bono-det-discount"),
+        eff: document.getElementById("bono-det-eff"),
+        novBody: document.getElementById("bono-det-nov-body"),
+        close: document.getElementById("bono-det-close"),
+    };
+
+    (window as any).openBonoMonthlyDetail = (data: any) => {
+        if (!el.root) return;
+
+        const { monthName, year, bonoData, novelties, rules, baseBonus } = data;
+
+        if (el.month) el.month.textContent = monthName;
+        if (el.year) el.year.textContent = `Año ${year}`;
+        if (el.final)
+            el.final.textContent = formatCurrency(bonoData.valorEjecutado || 0);
+
+        const totalDiscount =
+            (bonoData.valorProgramado || 0) - (bonoData.valorEjecutado || 0);
+        if (el.discount)
+            el.discount.textContent = formatCurrency(
+                totalDiscount > 0 ? totalDiscount : 0,
+            );
+        if (el.eff)
+            el.eff.textContent = formatPercent(bonoData.cumplimiento || 0);
+
+        if (el.novBody) {
+            el.novBody.replaceChildren();
+
+            if (novelties.length === 0) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td colspan="4" class="empty-state">No se registraron novedades este mes.</td>`;
+                el.novBody.appendChild(tr);
+            } else {
+                const fragment = document.createDocumentFragment();
+                novelties.forEach((n: any, index: number) => {
+                    const tr = document.createElement("tr");
+                    tr.style.opacity = "0";
+                    tr.style.transform = "translateY(10px)";
+                    tr.style.transition = `all 0.4s ease ${index * 0.05}s`;
+
+                    const rule = rules.find(
+                        (r: any) => r.item === n.codigoFactor,
+                    );
+                    let deductionMonto = 0;
+                    if (rule) {
+                        if (rule.porcentajeRetirar === "Día") {
+                            deductionMonto = baseBonus / 30;
+                        } else if (typeof rule.porcentajeRetirar === "number") {
+                            deductionMonto = baseBonus * rule.porcentajeRetirar;
+                        }
+                    }
+
+                    const fecha = new Date(
+                        n.fechaInicioNovedad,
+                    ).toLocaleDateString();
+
+                    tr.innerHTML = `
+                        <td>
+                            <div class="date-cell">
+                                <span class="day">${new Date(n.fechaInicioNovedad).getUTCDate()}</span>
+                                <span class="full-date">${fecha}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="factor-cell">
+                                <span class="code">${n.codigoFactor}</span>
+                                <span class="label">${n.label || "Novedad registrada"}</span>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <span class="days-badge">${n.registros || 1}</span>
+                        </td>
+                        <td class="text-right">
+                            <span class="monto-deduct">-${formatCurrency(deductionMonto)}</span>
+                        </td>
+                    `;
+
+                    fragment.appendChild(tr);
+                    setTimeout(() => {
+                        tr.style.opacity = "1";
+                        tr.style.transform = "translateY(0)";
+                    }, 100);
+                });
+                el.novBody.appendChild(fragment);
+            }
+        }
+
+        el.root.style.display = "flex";
+        setTimeout(() => el.root?.classList.add("active"), 10);
+    };
+
+    const close = () => {
+        if (!el.root) return;
+        el.root.classList.remove("active");
+        setTimeout(() => {
+            if (el.root) el.root.style.display = "none";
+        }, 350);
+    };
+
+    el.close?.addEventListener("click", close);
+    el.root?.addEventListener("click", (e) => {
+        if (
+            e.target === el.root ||
+            (e.target as HTMLElement).classList.contains("bono-detail-overlay")
+        ) {
+            close();
+        }
+    });
+</script>
+
+<style is:global>
+    .bono-detail-modal-root {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.35s ease;
+    }
+
+    .bono-detail-modal-root.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .bono-detail-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(8px);
+    }
+
+    .bono-detail-container {
+        position: relative;
+        background: #ffffff;
+        width: 90%;
+        max-width: 700px;
+        border-radius: 32px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        transform: translateY(30px) scale(0.96);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bono-detail-modal-root.active .bono-detail-container {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    .bono-detail-header {
+        padding: 35px 40px 25px;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        background: linear-gradient(to right, #f8fafc, #ffffff);
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .header-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 4px;
+    }
+
+    .header-info h2 {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: #1e293b;
+        margin: 0;
+        letter-spacing: -0.5px;
+        text-transform: capitalize;
+    }
+
+    .header-info h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin: 0;
+    }
+
+    .bono-detail-body {
+        padding: 30px 40px 40px;
+    }
+
+    .bono-summary-cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-bottom: 35px;
+    }
+
+    .b-card {
+        background: #f8fafc;
+        padding: 20px 15px;
+        border-radius: 20px;
+        text-align: center;
+        border: 1px solid #f1f5f9;
+    }
+
+    .b-card .label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    .b-card .value {
+        font-size: 1.3rem;
+        font-weight: 900;
+        display: block;
+    }
+
+    .b-card .value.success {
+        color: #4cc253;
+    }
+    .b-card .value.danger {
+        color: #f43f5e;
+    }
+    .b-card .value.primary {
+        color: #3b82f6;
+    }
+
+    .novelties-section {
+        margin-top: 20px;
+    }
+
+    .novelties-section .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 25px;
+        font-size: 1.1rem;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #f1f5f9;
+        letter-spacing: -0.3px;
+    }
+
+    .table-scroll {
+        max-height: 350px;
+        overflow-y: auto;
+        border: none;
+    }
+
+    .bono-nov-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .bono-nov-table th {
+        background: #fdfdfd;
+        padding: 14px 15px;
+        text-align: left;
+        font-size: 0.65rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    .bono-nov-table td {
+        padding: 18px 15px;
+        border-bottom: 1px solid #f8fafc;
+        vertical-align: middle;
+    }
+
+    .date-cell {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .date-cell .day {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: #1e293b;
+        line-height: 1;
+    }
+
+    .date-cell .full-date {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #94a3b8;
+    }
+
+    .factor-cell {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .factor-cell .code {
+        font-weight: 800;
+        color: #4cc253;
+        font-size: 0.85rem;
+    }
+
+    .factor-cell .label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .days-badge {
+        padding: 4px 10px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 0.8rem;
+    }
+
+    .monto-deduct {
+        font-weight: 800;
+        color: #f43f5e;
+        font-size: 0.9rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px !important;
+        color: #94a3b8;
+        font-weight: 600;
+        font-style: italic;
+    }
+
+    .close-btn {
+        background: white;
+        border: 1px solid #f1f5f9;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .close-btn:hover {
+        background: #fef2f2;
+        border-color: #fee2e2;
+        transform: rotate(90deg);
+    }
+</style>

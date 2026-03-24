@@ -1,0 +1,352 @@
+---
+import Icon from "@components/ui/Icon.astro";
+import KpiCard from "./shared/KpiCard.astro";
+---
+
+<div id="tab-kilómetros" class="tab-content">
+    <div class="internal-filters">
+        <div class="filter-item">
+            <Icon name="filter" size={16} color="#4cc253" />
+            <span>Filtros:</span>
+            <div class="filter-group">
+                <select class="clean-select modal-month-select">
+                    <option value="all">Todos los meses</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+                <select class="clean-select modal-year-select"></select>
+            </div>
+            <div class="divider"></div>
+            <button id="btn-km-global" class="view-toggle-btn">
+                <Icon name="activity" size={14} />
+                Vista Global
+            </button>
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <KpiCard
+            id="modal-km-prog-val"
+            label="KM Programados"
+            icon="target"
+            type="success"
+            showProgress={true}
+            progressBarId="modal-km-prog-bar"
+        />
+        <KpiCard
+            id="modal-km-ejec-val"
+            label="KM Ejecutados"
+            icon="user-check"
+            type="success"
+            showProgress={true}
+            progressBarId="modal-km-ejec-bar"
+        />
+        <KpiCard
+            id="modal-km-eff-val"
+            label="Cumplimiento KMS"
+            icon="activity"
+            type="success"
+            trendId="modal-km-eff-status"
+            showProgress={true}
+            progressBarId="modal-km-eff-bar"
+        />
+    </div>
+
+    <section class="body-section">
+        <div class="section-header">
+            <Icon name="trending-up" size={20} color="#4cc253" />
+            <h2 id="km-rendimiento-title">Rendimiento Mensual (KMS)</h2>
+        </div>
+        <div class="chart-box-premium">
+            <div class="chart-container">
+                <canvas id="kmMonthlyChart"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <div class="table-container-premium">
+        <div class="table-header-premium">
+            <div class="header-icon">
+                <Icon name="calendar" size={20} color="#4cc253" />
+            </div>
+            <h3 id="modal-km-table-title">Registro Detallado por Mes</h3>
+            <div class="header-badge" id="modal-km-count-badge">---</div>
+        </div>
+        <div class="table-wrapper">
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th>PERÍODO</th>
+                        <th>PROGRAMADO</th>
+                        <th>EJECUTADO</th>
+                        <th>EFICIENCIA</th>
+                        <th>ESTADO</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-km-table-body">
+                    <tr>
+                        <td colspan="5" class="loader-cell">
+                            <div class="spinner-small"></div>
+                            Cargando registros...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+    .internal-filters {
+        background: white;
+        padding: 12px 20px;
+        border-radius: 16px;
+        margin-bottom: 30px;
+        display: flex;
+        align-items: center;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+    .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-weight: 800;
+        font-size: 0.85rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .filter-group {
+        display: flex;
+        gap: 10px;
+    }
+    .divider {
+        width: 1px;
+        height: 24px;
+        background: #e2e8f0;
+        margin: 0 10px;
+    }
+    .view-toggle-btn {
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-family: "Outfit", sans-serif;
+        font-weight: 800;
+        font-size: 0.75rem;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: 0.5px;
+    }
+    .view-toggle-btn:hover {
+        border-color: #4cc253;
+        color: #4cc253;
+        background: #f0fdf4;
+    }
+    .view-toggle-btn.active {
+        background: #4cc253;
+        color: white;
+        border-color: #4cc253;
+        box-shadow: 0 4px 12px rgba(76, 194, 83, 0.2);
+    }
+    .view-toggle-btn :global(svg) {
+        transition: transform 0.3s ease;
+    }
+    .view-toggle-btn.active :global(svg) {
+        transform: rotate(360deg);
+    }
+    .clean-select {
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-family: "Outfit", sans-serif;
+        font-weight: 700;
+        font-size: 0.85rem;
+        color: #1e293b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .clean-select:hover {
+        border-color: #4cc253;
+    }
+    .chart-box-premium {
+        background: #f8fafc;
+        padding: 45px;
+        border-radius: 35px;
+        border: 1px solid #f1f5f9;
+        max-width: 100%;
+        margin-bottom: 40px;
+    }
+    .chart-container {
+        height: 500px;
+        position: relative;
+        width: 100%;
+    }
+
+    .table-container-premium {
+        background: white;
+        border-radius: 30px;
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.04);
+        margin-top: 20px;
+    }
+    .table-header-premium {
+        background: white;
+        padding: 30px 40px;
+        border-bottom: 2px solid #f8fafc;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    .header-icon {
+        width: 40px;
+        height: 40px;
+        background: #f0fdf4;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dcfce7;
+    }
+    .table-header-premium h3 {
+        font-size: 1.15rem;
+        font-weight: 900;
+        color: #1e293b;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    .table-header-premium :global(svg) {
+        color: #4cc253 !important;
+    }
+    .header-badge {
+        font-size: 0.75rem;
+        background: #f8fafc;
+        color: #64748b;
+        padding: 6px 14px;
+        border-radius: 12px;
+        font-weight: 800;
+        margin-left: auto;
+        border: 1px solid #f1f5f9;
+    }
+
+    .table-wrapper {
+        padding: 10px;
+    }
+    .premium-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    .premium-table th {
+        text-align: left;
+        padding: 15px 25px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .premium-table td {
+        padding: 20px 25px;
+        font-size: 0.95rem;
+        color: #334155;
+        background: white;
+        border-top: 1px solid transparent;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+    }
+    .premium-table tr:hover td {
+        background: #f8fafc;
+        color: #1e293b;
+    }
+    .premium-table td:first-child {
+        border-radius: 15px 0 0 15px;
+        border-left: 1px solid transparent;
+    }
+    .premium-table td:last-child {
+        border-radius: 0 15px 15px 0;
+        border-right: 1px solid transparent;
+    }
+
+    .premium-table tr:hover td:first-child {
+        border-left-color: #4cc253;
+        background: #f0fdf4;
+    }
+    .premium-table tr:hover td {
+        background: #f0fdf4;
+    }
+
+    .loader-cell {
+        text-align: center;
+        padding: 80px !important;
+        color: #94a3b8;
+        font-weight: 600;
+        background: transparent !important;
+    }
+
+    /* Status Badges */
+    :global(.badge-status) {
+        padding: 8px 16px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.8rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    :global(.badge-status.success) {
+        background: #f0fdf4;
+        color: #4cc253;
+        border: 1px solid #dcfce7;
+    }
+    :global(.badge-status.danger) {
+        background: #fef2f2;
+        color: #ef4444;
+        border: 1px solid #fee2e2;
+    }
+    :global(.badge-status .dot) {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    /* Estilo para los valores de eficiencia en la tabla */
+    :global(.eff-value) {
+        font-weight: 900;
+        font-size: 1.1rem;
+        letter-spacing: -0.5px;
+    }
+    :global(.eff-value.success) {
+        color: #4cc253;
+    }
+    :global(.eff-value.danger) {
+        color: #ef4444;
+    }
+</style>

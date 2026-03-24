@@ -1,0 +1,1603 @@
+---
+import Icon from "@components/ui/Icon.astro";
+import ModalHeader from "./modal/ModalHeader.astro";
+import TabGeneral from "./modal/TabGeneral.astro";
+import TabKilometros from "./modal/TabKilometros.astro";
+import TabBonos from "./modal/TabBonos.astro";
+import NoveltyDetailModal from "./modal/NoveltyDetailModal.astro";
+import BonoMonthlyDetailModal from "./modal/BonoMonthlyDetailModal.astro";
+
+interface Props {
+    operator?: any;
+}
+
+const { operator } = Astro.props;
+---
+
+<div id="operator-detail-modal" class="modal-overlay">
+    <div class="modal-content large">
+        <ModalHeader />
+
+        <div class="modal-body custom-scrollbar">
+            <TabGeneral />
+            <TabKilometros />
+            <TabBonos />
+        </div>
+    </div>
+
+    <NoveltyDetailModal />
+    <BonoMonthlyDetailModal />
+
+    <!-- Modal para zoom de imagen -->
+    <div id="image-zoom-modal" class="image-modal-overlay">
+        <div class="image-modal-container">
+            <img id="zoomed-image" src="" alt="Zoom Operador" />
+            <button id="close-image-zoom" class="image-modal-close"
+                >&times;</button
+            >
+        </div>
+    </div>
+</div>
+
+<script>
+    import { store } from "@store";
+    import {
+        fetchPerformanceData,
+        fetchAvailableYears,
+        fetchHistoricalData,
+        setSelectedYear,
+        setOperatorCode,
+    } from "@store/slices/desempenoSlice";
+    import { Chart } from "chart.js";
+    import { getModalElements } from "./modal/dom/selectors";
+    import {
+        createDetailChart,
+        createKmChart,
+        createBonoChart,
+    } from "./modal/charts/config";
+    import {
+        formatCurrency,
+        formatPercent,
+        getMonthNameShort,
+        calculatePerformance,
+        getStatusClass,
+        getBadgeStatusClass,
+    } from "./modal/utils/formatters";
+
+    let detailChartInstance: Chart | null = null;
+    let kmChartInstance: Chart | null = null;
+    let bonoChartInstance: Chart | null = null;
+    let isKmGlobalView = false;
+
+    // --- ACTUALIZACIÓN DE UI ---
+    const updateUI = (state: any) => {
+        const { performanceData, loading } = state;
+        if (!performanceData || loading) return;
+
+        const el = getModalElements();
+        const data = performanceData;
+        const kms = data.variables["KMS"] ||
+            data.variables["KM"] || {
+                totalEjecutado: 0,
+                cumplimientoTotal: 0,
+                totalProgramado: 0,
+                mensual: [],
+            };
+        const bono = data.variables["BONO"] || {
+            totalEjecutado: 0,
+            cumplimientoTotal: 0,
+            totalProgramado: 0,
+            mensual: [],
+        };
+
+        const recordsKm = kms.mensual
+            .map((m: any, i: number) => ({ ...m, i }))
+            .filter((m: any) => m.registros > 0);
+
+        let lastBonoVal = 0;
+        let lastBonoPct = 0;
+        let lastBonoBase = 0;
+        let lastBonoDiscount = 0;
+        let lastKmVal = 0;
+        let lastKmPct = 0;
+        let lastKmProg = 0;
+
+        if (recordsKm.length > 0) {
+            const last = recordsKm[recordsKm.length - 1];
+            const idx = last.i;
+
+            lastKmVal = last.valorEjecutado;
+            lastKmPct = last.cumplimiento;
+            lastKmProg = last.valorProgramado;
+
+            const b = bono.mensual[idx];
+            if (b) {
+                lastBonoVal = b.valorEjecutado;
+                lastBonoPct = b.cumplimiento;
+                lastBonoBase = b.valorProgramado;
+                if (lastBonoPct < 100) {
+                    lastBonoDiscount = b.valorProgramado - b.valorEjecutado;
+                }
+            }
+        }
+
+        if (el.bonosVal) {
+            let bonoContent = formatCurrency(lastBonoVal);
+            if (lastBonoDiscount > 0) {
+                bonoContent += ` <span class="discount-pill">-${formatCurrency(lastBonoDiscount)}</span>`;
+            }
+            el.bonosVal.innerHTML = bonoContent;
+
+            const trend = document.getElementById("modal-kpi-bonos-trend");
+            if (trend) {
+                trend.textContent = formatPercent(lastBonoPct, 0);
+                trend.className = `kpi-trend ${getStatusClass(lastBonoPct, 100)}`;
+            }
+        }
+
+        if (el.kmVal) {
+            el.kmVal.textContent = `${lastKmVal.toLocaleString()} KM`;
+            const trend = document.getElementById("modal-kpi-km-trend");
+            if (trend) {
+                trend.textContent = formatPercent(lastKmPct, 0);
+                trend.className = `kpi-trend ${getStatusClass(lastKmPct, 90)}`;
+            }
+        }
+
+        if (el.catVal) {
+            el.catVal.textContent =
+                data.cumplimientoTotal >= 90 ? "Oro" : "Bronce";
+            el.catVal.className = `category-name ${data.cumplimientoTotal >= 90 ? "text-success" : "text-secondary"}`;
+        }
+
+        if (el.kmProgVal)
+            el.kmProgVal.textContent = lastKmProg.toLocaleString();
+        if (el.kmEjecVal) el.kmEjecVal.textContent = lastKmVal.toLocaleString();
+        if (el.kmEffVal) el.kmEffVal.textContent = formatPercent(lastKmPct);
+        if (el.kmProgBar) el.kmProgBar.style.width = "100%";
+        if (el.kmEjecBar)
+            el.kmEjecBar.style.width = `${Math.min(100, lastKmPct)}%`;
+        if (el.kmEffBar)
+            el.kmEffBar.style.width = `${Math.min(100, lastKmPct)}%`;
+
+        if (el.bonoBase) el.bonoBase.textContent = formatCurrency(lastBonoBase);
+        if (el.bonoDed)
+            el.bonoDed.textContent = formatCurrency(lastBonoDiscount);
+        if (el.bonoDesc)
+            el.bonoDesc.textContent = formatPercent(100 - lastBonoPct);
+        if (el.bonoFin) el.bonoFin.textContent = formatCurrency(lastBonoVal);
+
+        if (el.efAnual)
+            el.efAnual.textContent = formatPercent(data.cumplimientoTotal);
+        if (el.efMensual) {
+            el.efMensual.textContent = formatPercent(
+                calculatePerformance(lastKmPct, lastBonoPct),
+            );
+        }
+
+        // Ajustes para Vista Global
+        if (el.btnKmGlobal) {
+            el.btnKmGlobal.classList.toggle("active", isKmGlobalView);
+        }
+        if (el.kmRendimientoTitle) {
+            el.kmRendimientoTitle.textContent = isKmGlobalView
+                ? "Rendimiento Anual (KMS)"
+                : "Rendimiento Mensual (KMS)";
+        }
+        if (el.monthSelects) {
+            el.monthSelects.forEach((s) => {
+                (s as HTMLSelectElement).disabled = isKmGlobalView;
+                if (isKmGlobalView) (s as HTMLSelectElement).value = "all";
+            });
+        }
+
+        updateChartsUI(data, kms, bono, isKmGlobalView);
+        updateTableUI(data, kms, isKmGlobalView);
+        updateNoveltiesUI(data);
+        updateDeduccionesUI(data);
+    };
+
+    const updateNoveltiesUI = (data: any) => {
+        const el = getModalElements();
+        const summary = data.novedadesSummary;
+        const matrix = data.matrizNovedades;
+
+        if (!summary || !matrix) return;
+
+        if (el.novTotal) el.novTotal.textContent = summary.totalNovedades;
+        if (el.novAnios) el.novAnios.textContent = summary.aniosConRegistro;
+        if (el.novTipos) el.novTipos.textContent = summary.tiposDiferentes;
+        if (el.novPromo) el.novPromo.textContent = summary.promedioAnual;
+        if (el.novBadge)
+            el.novBadge.textContent = `${summary.tiposDiferentes} tipos`;
+
+        if (el.novDistGrid) {
+            el.novDistGrid.replaceChildren();
+            const fragment = document.createDocumentFragment();
+            const maxTotal = Math.max(
+                ...summary.distribucionPorAnio.map((d: any) => d.total),
+                1,
+            );
+
+            summary.distribucionPorAnio.forEach((d: any) => {
+                const div = document.createElement("div");
+                div.className = `dist-card ${d.anio == data.anio ? "active" : ""}`;
+
+                const yearLabel = document.createElement("span");
+                yearLabel.className = "dist-year";
+                yearLabel.textContent = d.anio;
+
+                const countVal = document.createElement("span");
+                countVal.className = "dist-count";
+                countVal.textContent = d.total;
+
+                const tagLabel = document.createElement("span");
+                tagLabel.className = "dist-label";
+                tagLabel.textContent = d.total === 1 ? "Novedad" : "Novedades";
+
+                div.append(yearLabel, countVal, tagLabel);
+                fragment.appendChild(div);
+            });
+            el.novDistGrid.appendChild(fragment);
+        }
+
+        const aniosHistorial = summary.distribucionPorAnio
+            .map((d: any) => d.anio)
+            .sort((a: number, b: number) => b - a);
+
+        if (el.novTableHeader) {
+            el.novTableHeader.replaceChildren();
+            const thFactor = document.createElement("th");
+            thFactor.textContent = "Tipo de Falta";
+            el.novTableHeader.appendChild(thFactor);
+
+            aniosHistorial.forEach((y: number) => {
+                const th = document.createElement("th");
+                th.className = "text-center";
+                th.textContent = y.toString();
+                if (y == data.anio) th.classList.add("text-primary");
+                if (el.novTableHeader) el.novTableHeader.appendChild(th);
+            });
+
+            const thTotal = document.createElement("th");
+            thTotal.className = "text-center";
+            thTotal.textContent = "Total";
+            el.novTableHeader.appendChild(thTotal);
+        }
+
+        if (el.novBody) {
+            el.novBody.replaceChildren();
+            const fragment = document.createDocumentFragment();
+
+            matrix.forEach((m: any) => {
+                const tr = document.createElement("tr");
+                const tdFactor = document.createElement("td");
+                const mainWrapper = document.createElement("div");
+                mainWrapper.className = "nov-factor-cell";
+
+                const headerWrapper = document.createElement("div");
+                headerWrapper.className = "nov-factor-header";
+
+                const codeSpan = document.createElement("span");
+                codeSpan.className = "nov-factor-code";
+                codeSpan.textContent = m.factor;
+
+                const sepSpan = document.createElement("span");
+                sepSpan.className = "nov-factor-sep";
+
+                const labelSpan = document.createElement("span");
+                labelSpan.className = "nov-factor-label";
+                labelSpan.textContent = m.label;
+
+                headerWrapper.append(codeSpan, sepSpan);
+                mainWrapper.append(headerWrapper, labelSpan);
+                tdFactor.appendChild(mainWrapper);
+                tr.appendChild(tdFactor);
+
+                aniosHistorial.forEach((y: number) => {
+                    const td = document.createElement("td");
+                    td.className = "text-center";
+                    const count = m.porAnio[y] || 0;
+                    const badge = document.createElement("span");
+                    badge.className = `badge-status ${count > 0 ? "success" : "default"}`;
+                    badge.textContent = count.toString();
+                    td.appendChild(badge);
+                    tr.appendChild(td);
+                });
+
+                const tdTotal = document.createElement("td");
+                tdTotal.className = "col-total-highlight";
+                tdTotal.textContent = m.total;
+                tr.appendChild(tdTotal);
+                fragment.appendChild(tr);
+            });
+
+            if (matrix.length === 0) {
+                const tr = document.createElement("tr");
+                const td = document.createElement("td");
+                td.colSpan = aniosHistorial.length + 2;
+                td.className = "loader-cell";
+                td.textContent = "Sin novedades registradas";
+                tr.appendChild(td);
+                fragment.appendChild(tr);
+            }
+            el.novBody.appendChild(fragment);
+        }
+
+        if (el.novBody) {
+            el.novBody.onclick = (e: any) => {
+                const badge = e.target.closest(".badge-status");
+                if (!badge) return;
+
+                const tr = badge.closest("tr");
+                const factorCell = tr.querySelector(".nov-factor-code");
+                const labelCell = tr.querySelector(".nov-factor-label");
+
+                const factorStr = factorCell?.textContent || "";
+                const labelStr = labelCell?.textContent || "";
+
+                const colIndex = Array.from(
+                    badge.closest("td").parentNode.children,
+                ).indexOf(badge.closest("td"));
+                const yearStr = el.novTableHeader
+                    ? el.novTableHeader.children[colIndex].textContent
+                    : "";
+
+                const filtered = data.novedadesRaw.filter(
+                    (n: any) =>
+                        n.codigoFactor === factorStr &&
+                        new Date(n.fechaInicioNovedad)
+                            .getUTCFullYear()
+                            .toString() === yearStr,
+                );
+
+                (window as any).openNoveltyDetail(
+                    factorStr,
+                    labelStr,
+                    yearStr,
+                    filtered,
+                );
+            };
+        }
+    };
+
+    const updateDeduccionesUI = (data: any) => {
+        const el = getModalElements();
+        if (!el.dedBody) return;
+
+        const allNovs = data.novedadesRaw || [];
+        const selectedYear = data.anio;
+        // Usar baseBonusParaEficiencia si existe, sino fallback a baseBonus
+        const baseBonusParaCalculo = data.baseBonusParaEficiencia ?? data.baseBonus ?? 0;
+        const rules = data.deductionRules || [];
+
+        const deductions = allNovs
+            .filter(
+                (n: any) =>
+                    new Date(n.fechaInicioNovedad).getUTCFullYear() ===
+                    selectedYear,
+            )
+            .map((n: any) => {
+                const rule = rules.find((r: any) => r.item === n.codigoFactor);
+                if (
+                    !rule ||
+                    (rule.porcentajeRetirar === 0 && rule.causa !== "Calamidad")
+                )
+                    return null;
+
+                let monto = 0;
+                let porcentajeLabel = "---";
+
+                if (rule.porcentajeRetirar === "Día") {
+                    const fechaInicio = new Date(n.fechaInicioNovedad);
+                    const fechaFin = new Date(n.fechaFinNovedad);
+                    const diffTime = Math.abs(fechaFin.getTime() - fechaInicio.getTime());
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    monto = (baseBonusParaCalculo / 30) * diffDays;
+                    porcentajeLabel = `${diffDays} Día(s)`;
+                } else if (typeof rule.porcentajeRetirar === "number") {
+                    monto = baseBonusParaCalculo * rule.porcentajeRetirar;
+                    porcentajeLabel = formatPercent(
+                        rule.porcentajeRetirar * 100,
+                    );
+                }
+
+                return {
+                    codigo: n.codigoFactor,
+                    concepto: rule.causa,
+                    porcentaje: porcentajeLabel,
+                    monto: monto,
+                    fecha: new Date(n.fechaInicioNovedad).toLocaleDateString(),
+                };
+            })
+            .filter((d: any) => d !== null);
+
+        if (el.dedTitle)
+            el.dedTitle.textContent = `Deducciones del Período (${deductions.length})`;
+
+        el.dedBody.replaceChildren();
+        if (deductions.length === 0) {
+            const tr = document.createElement("tr");
+            const td = document.createElement("td");
+            td.colSpan = 5;
+            td.className = "loader-cell text-slate-400 italic";
+            td.textContent = "Sin deducciones registradas en este período";
+            tr.appendChild(td);
+            el.dedBody.appendChild(tr);
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        deductions
+            .sort(
+                (a: any, b: any) =>
+                    new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
+            )
+            .forEach((d: any) => {
+                const tr = document.createElement("tr");
+                const tdCode = document.createElement("td");
+                tdCode.className = "font-bold text-slate-700";
+                tdCode.textContent = d.codigo;
+
+                const tdConcepto = document.createElement("td");
+                tdConcepto.textContent = d.concepto;
+
+                const tdPct = document.createElement("td");
+                tdPct.className = "text-center font-semibold text-slate-500";
+                const pctBadge = document.createElement("span");
+                pctBadge.className = "bonus-pct-badge";
+                pctBadge.textContent = d.porcentaje;
+                tdPct.appendChild(pctBadge);
+
+                const tdMonto = document.createElement("td");
+                tdMonto.className = "text-right font-bold text-danger";
+                tdMonto.textContent =
+                    d.monto > 0 ? `- ${formatCurrency(d.monto)}` : "$ 0";
+
+                const tdFecha = document.createElement("td");
+                tdFecha.className = "text-right text-slate-500";
+                tdFecha.textContent = d.fecha;
+
+                tr.append(tdCode, tdConcepto, tdPct, tdMonto, tdFecha);
+                fragment.appendChild(tr);
+            });
+        el.dedBody.appendChild(fragment);
+    };
+
+    const updateTableUI = (data: any, kms: any, isGlobal = false) => {
+        const el = getModalElements();
+        const monthFilter =
+            (document.querySelector(".modal-month-select") as HTMLSelectElement)
+                ?.value || "all";
+
+        if (el.kmTitle) {
+            el.kmTitle.textContent = isGlobal
+                ? "Resumen Histórico Anual"
+                : "Registro Detallado por Mes";
+        }
+
+        const countBadge = document.getElementById("modal-km-count-badge");
+
+        if (el.kmBody) {
+            el.kmBody.replaceChildren();
+
+            let displayRows = [];
+
+            if (isGlobal) {
+                const state = store.getState().desempeno;
+                const historical = state.historicalData;
+                const yearlyData =
+                    data.novedadesSummary?.distribucionPorAnio || [];
+
+                displayRows = yearlyData
+                    .map((d: any) => {
+                        const yearData = historical[d.anio];
+                        const yKms =
+                            yearData?.variables?.["KMS"] ||
+                            yearData?.variables?.["KM"];
+
+                        return {
+                            etiqueta: `Año ${d.anio}`,
+                            programado: yKms ? yKms.totalProgramado : 0,
+                            ejecutado: yKms ? yKms.totalEjecutado : 0,
+                            cumplimiento: yKms ? yKms.cumplimientoTotal : 0,
+                            esActual: d.anio === data.anio,
+                        };
+                    })
+                    .sort(
+                        (a: any, b: any) =>
+                            parseInt(b.etiqueta.replace("Año ", "")) -
+                            parseInt(a.etiqueta.replace("Año ", "")),
+                    );
+
+                if (countBadge)
+                    countBadge.textContent = `${displayRows.length} Años`;
+            } else {
+                let registrosValidos = kms.mensual.filter(
+                    (m: any) => m.registros > 0,
+                );
+                if (monthFilter !== "all") {
+                    const monthNum = parseInt(monthFilter);
+                    registrosValidos = registrosValidos.filter(
+                        (m: any) => m.mes === monthNum,
+                    );
+                }
+                displayRows = registrosValidos.map((m: any) => ({
+                    etiqueta: `${m.nombreMes} ${data.anio}`,
+                    programado: m.valorProgramado,
+                    ejecutado: m.valorEjecutado,
+                    cumplimiento: m.cumplimiento,
+                    esActual: false,
+                }));
+                if (countBadge)
+                    countBadge.textContent = `${displayRows.length} Meses`;
+            }
+
+            if (displayRows.length === 0) {
+                const tr = document.createElement("tr");
+                const td = document.createElement("td");
+                td.colSpan = 5;
+                td.className = "loader-cell";
+                td.textContent = "No hay datos que mostrar";
+                tr.appendChild(td);
+                el.kmBody.appendChild(tr);
+            } else {
+                const fragment = document.createDocumentFragment();
+                displayRows.forEach((row: any) => {
+                    const tr = document.createElement("tr");
+                    if (row.esActual) tr.classList.add("row-active-premium");
+
+                    const tdLabel = document.createElement("td");
+                    tdLabel.className = "font-bold text-slate-800";
+                    tdLabel.textContent = row.etiqueta;
+                    tr.appendChild(tdLabel);
+
+                    const tdProg = document.createElement("td");
+                    tdProg.className = "text-slate-500 font-medium";
+                    tdProg.textContent =
+                        row.programado > 0
+                            ? `${row.programado.toLocaleString()} km`
+                            : "---";
+                    tr.appendChild(tdProg);
+
+                    const tdEjec = document.createElement("td");
+                    tdEjec.className = "font-extrabold text-slate-700";
+                    tdEjec.textContent =
+                        row.ejecutado > 0
+                            ? `${row.ejecutado.toLocaleString()} km`
+                            : "---";
+                    tr.appendChild(tdEjec);
+
+                    const tdCumplimiento = document.createElement("td");
+                    const statusClass =
+                        row.cumplimiento >= 90
+                            ? "success"
+                            : row.cumplimiento > 0
+                              ? "danger"
+                              : "";
+                    tdCumplimiento.innerHTML =
+                        row.cumplimiento > 0
+                            ? `<span class="eff-value ${statusClass}">${formatPercent(row.cumplimiento, 0)}</span>`
+                            : `<span class="text-slate-300">---</span>`;
+                    tr.appendChild(tdCumplimiento);
+
+                    const tdStatus = document.createElement("td");
+                    if (row.cumplimiento > 0) {
+                        const statusBadge = document.createElement("span");
+                        statusBadge.className = `badge-status ${getBadgeStatusClass(row.cumplimiento, 90)}`;
+                        statusBadge.innerHTML = `<span class="dot"></span> ${row.cumplimiento >= 90 ? "Bueno" : "Bajo"}`;
+                        tdStatus.appendChild(statusBadge);
+                    } else {
+                        tdStatus.textContent = "---";
+                    }
+                    tr.appendChild(tdStatus);
+
+                    fragment.appendChild(tr);
+                });
+                el.kmBody.appendChild(fragment);
+            }
+        }
+    };
+
+    const updateChartsUI = (
+        data: any,
+        kms: any,
+        bono: any,
+        isGlobal = false,
+    ) => {
+        const state = store.getState().desempeno;
+        const historical = state.historicalData;
+
+        let labels = [];
+        let kmLabels = [];
+        let dataReal = [];
+        let dataProg = [];
+        let dataEff = [];
+
+        if (isGlobal) {
+            const yearlySummary =
+                data.novedadesSummary?.distribucionPorAnio || [];
+            labels = yearlySummary.map((d: any) => d.anio.toString()).sort();
+
+            const globalData = labels.map((y: string) => {
+                const yearData = historical[parseInt(y)];
+                const yKms =
+                    yearData?.variables?.["KMS"] || yearData?.variables?.["KM"];
+                return {
+                    label: y,
+                    real: yKms ? yKms.totalEjecutado : 0,
+                    prog: yKms ? yKms.totalProgramado : 0,
+                    eff: yKms ? yKms.cumplimientoTotal : 0
+                };
+            }).sort((a, b) => b.eff - a.eff);
+
+            labels = globalData.map(d => d.label);
+            dataReal = globalData.map(d => d.real);
+            dataProg = globalData.map(d => d.prog);
+            dataEff = globalData.map(d => d.eff);
+        } else {
+            const sortedMensual = [...kms.mensual].sort((a: any, b: any) => b.cumplimiento - a.cumplimiento);
+            labels = sortedMensual.map((m: any) => getMonthNameShort(m.nombreMes));
+            dataReal = sortedMensual.map((m: any) => m.valorEjecutado);
+            dataProg = sortedMensual.map((m: any) => m.valorProgramado);
+            dataEff = sortedMensual.map((m: any) => m.cumplimiento);
+        }
+
+        if (detailChartInstance) {
+            // Detail chart remains monthly for now or skips if global
+            if (!isGlobal) {
+                detailChartInstance.data.labels = labels;
+                const metadata: any[] = [];
+                detailChartInstance.data.datasets[0].data = kms.mensual.map(
+                    (m: any, i: number) => {
+                        const b = bono.mensual[i] || {
+                            cumplimiento: 0,
+                            valorEjecutado: 0,
+                        };
+                        const yVal = calculatePerformance(
+                            m.cumplimiento,
+                            b.cumplimiento,
+                        );
+                        metadata.push({
+                            km: m.valorEjecutado,
+                            kmEff: m.cumplimiento,
+                            bono: b.valorEjecutado,
+                            bonoEff: b.cumplimiento,
+                        });
+                        return yVal;
+                    },
+                );
+                (detailChartInstance.data.datasets[0] as any).customMetadata =
+                    metadata;
+                detailChartInstance.update();
+            }
+        }
+
+        if (kmChartInstance) {
+            kmChartInstance.data.labels = labels;
+            
+            // Dataset 0: KM Reales (Line) - Index 0 en config.ts
+            // Dataset 1: KM Programados (Bar) - Index 1 en config.ts
+            // Dataset 2: Eff (Hidden Line) - Index 2 en config.ts
+            kmChartInstance.data.datasets[0].data = dataReal;
+            kmChartInstance.data.datasets[1].data = dataProg;
+            kmChartInstance.data.datasets[2].data = dataEff;
+            
+            kmChartInstance.update();
+        }
+
+        if (bonoChartInstance) {
+            // Bono chart remains monthly for now or skips if global
+            if (!isGlobal) {
+                const labelsBono = bono.mensual.map((m: any) =>
+                    m.nombreMes.substring(0, 3),
+                );
+                const dataBono = bono.mensual.map((m: any) => m.cumplimiento);
+
+                // Metadatos para el modal de clic
+                const metadataBono = bono.mensual.map((m: any, i: number) => {
+                    const monthIndex = i + 1; // 1-12
+                    const year = data.anio;
+                    const monthNovs = (data.novedadesRaw || []).filter(
+                        (n: any) => {
+                            const d = new Date(n.fechaInicioNovedad);
+                            return (
+                                d.getUTCFullYear() === year &&
+                                d.getUTCMonth() + 1 === monthIndex
+                            );
+                        },
+                    );
+
+                    const mKm = kms.mensual[i] || {
+                        valorEjecutado: 0,
+                        cumplimiento: 0,
+                    };
+
+                    return {
+                        // Para el tooltip (config.ts)
+                        km: mKm.valorEjecutado,
+                        kmEff: mKm.cumplimiento,
+                        bono: m.valorEjecutado,
+                        bonoEff: m.cumplimiento,
+                        // Para el modal (Custom)
+                        monthName: m.nombreMes,
+                        year: year,
+                        bonoData: m,
+                        novelties: monthNovs,
+                        rules: data.deductionRules || [],
+                        baseBonus: data.baseBonus || 0,
+                    };
+                });
+
+                bonoChartInstance.data.labels = labelsBono;
+                bonoChartInstance.data.datasets[0].data = dataBono;
+                (bonoChartInstance.data.datasets[0] as any).customMetadata =
+                    metadataBono;
+                bonoChartInstance.update();
+            }
+        }
+    };
+
+    const initDetailChartInstance = () => {
+        const canvas = document.getElementById(
+            "performanceChartCanvas",
+        ) as HTMLCanvasElement;
+        if (!canvas) return;
+        if (detailChartInstance) detailChartInstance.destroy();
+        detailChartInstance = createDetailChart(canvas);
+    };
+
+    const initKmChartInstance = () => {
+        const canvas = document.getElementById(
+            "kmMonthlyChart",
+        ) as HTMLCanvasElement;
+        if (!canvas) return;
+        if (kmChartInstance) kmChartInstance.destroy();
+        kmChartInstance = createKmChart(canvas);
+    };
+
+    const initBonoChartInstance = () => {
+        const canvas = document.getElementById(
+            "bonoPerformanceChart",
+        ) as HTMLCanvasElement;
+        if (!canvas) return;
+        if (bonoChartInstance) bonoChartInstance.destroy();
+
+        bonoChartInstance = createBonoChart(canvas);
+
+        // Agregar click handler
+        canvas.onclick = (evt) => {
+            const points = bonoChartInstance.getElementsAtEventForMode(
+                evt,
+                "nearest",
+                { intersect: true },
+                true,
+            );
+            if (points.length) {
+                const firstPoint = points[0];
+                const dataset =
+                    bonoChartInstance.data.datasets[firstPoint.datasetIndex];
+                const metadata = (dataset as any).customMetadata;
+                if (metadata && metadata[firstPoint.index]) {
+                    (window as any).openBonoMonthlyDetail(
+                        metadata[firstPoint.index],
+                    );
+                }
+            }
+        };
+    };
+
+    // --- STORE SUBSCRIPTION ---
+    store.subscribe(() => {
+        const state = store.getState().desempeno;
+        updateUI(state);
+
+        const el = getModalElements();
+        el.selects.forEach((s) => {
+            const sel = s as HTMLSelectElement;
+            if (sel.children.length !== state.availableYears.length) {
+                sel.innerHTML = state.availableYears
+                    .map(
+                        (y) =>
+                            `<option value="${y}" ${y == state.selectedYear ? "selected" : ""}>Año ${y}</option>`,
+                    )
+                    .join("");
+            }
+            if (sel.value != state.selectedYear.toString())
+                sel.value = state.selectedYear.toString();
+        });
+    });
+
+    (window as any).refreshOperatorData = async (
+        codigo: string,
+        anio: number | string,
+    ) => {
+        store.dispatch(setOperatorCode(codigo));
+        let finalAnio = Number(anio);
+        if (!finalAnio || isNaN(finalAnio)) {
+            const action = await store.dispatch(fetchAvailableYears(codigo));
+            if (fetchAvailableYears.fulfilled.match(action)) {
+                const years = action.payload;
+                if (years && (years as number[]).length > 0)
+                    finalAnio = Math.max(...(years as number[]));
+            }
+        } else {
+            store.dispatch(fetchAvailableYears(codigo));
+        }
+        if (!finalAnio || isNaN(finalAnio))
+            finalAnio = new Date().getFullYear();
+        store.dispatch(setSelectedYear(finalAnio));
+        store.dispatch(fetchPerformanceData({ codigo, anio: finalAnio }));
+    };
+
+    (window as any).loadAvailableYears = (codigo: string) =>
+        store.dispatch(fetchAvailableYears(codigo));
+
+    document.addEventListener("change", (e) => {
+        const target = e.target as HTMLSelectElement;
+
+        if (target.classList.contains("modal-year-select")) {
+            const year = Number(target.value);
+            store.dispatch(setSelectedYear(year));
+            const code = store.getState().desempeno.operatorCode;
+            if (code)
+                store.dispatch(
+                    fetchPerformanceData({ codigo: code, anio: year }),
+                );
+        }
+
+        if (target.classList.contains("modal-month-select")) {
+            const state = store.getState().desempeno;
+            updateUI(state);
+        }
+    });
+
+    document.addEventListener("click", (e) => {
+        const card = (e.target as HTMLElement).closest(".dist-card");
+        if (card) {
+            const year = Number(card.querySelector(".year")?.textContent);
+            if (year) {
+                store.dispatch(setSelectedYear(year));
+                const code = store.getState().desempeno.operatorCode;
+                if (code)
+                    store.dispatch(
+                        fetchPerformanceData({ codigo: code, anio: year }),
+                    );
+            }
+        }
+
+        const el = getModalElements();
+        const imgContainer = (e.target as HTMLElement).closest(
+            ".profile-img-container",
+        );
+        if (imgContainer && el.img) {
+            if (el.zoomedImage && el.imageModal) {
+                el.zoomedImage.src = el.img.src;
+                el.imageModal.classList.add("open");
+            }
+        }
+        if (e.target === el.closeImageZoom || e.target === el.imageModal) {
+            el.imageModal?.classList.remove("open");
+        }
+
+        if ((e.target as HTMLElement).closest("#btn-km-global")) {
+            isKmGlobalView = !isKmGlobalView;
+            if (isKmGlobalView) {
+                const state = store.getState().desempeno;
+                const missingYears = state.availableYears.filter(
+                    (y) => !state.historicalData[y],
+                );
+                if (missingYears.length > 0 && state.operatorCode) {
+                    store.dispatch(
+                        fetchHistoricalData({
+                            codigo: state.operatorCode,
+                            anios: missingYears,
+                        }),
+                    );
+                }
+            }
+            updateUI(store.getState().desempeno);
+        }
+    });
+
+    const setupTabs = () => {
+        const btns = document.querySelectorAll(".nav-btn");
+        const tabs = document.querySelectorAll(".tab-content");
+        btns.forEach((b) =>
+            b.addEventListener("click", () => {
+                const target = b.getAttribute("data-tab");
+                btns.forEach((btn) =>
+                    btn.classList.toggle("active", btn === b),
+                );
+                tabs.forEach((t) =>
+                    t.classList.toggle("active", t.id === `tab-${target}`),
+                );
+
+                if (target === "general") initDetailChartInstance();
+                if (target === "kilómetros") initKmChartInstance();
+                if (target === "bonos") initBonoChartInstance();
+
+                updateUI(store.getState().desempeno);
+            }),
+        );
+    };
+
+    document.addEventListener("astro:page-load", () => {
+        setupTabs();
+        initDetailChartInstance();
+    });
+</script>
+
+<style is:global>
+    /* Estilos Globales del Modal */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(44, 62, 80, 0.4);
+        backdrop-filter: blur(0px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modal-overlay.open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        backdrop-filter: blur(12px);
+    }
+    .modal-content.large {
+        background: #fff;
+        width: 96%;
+        max-width: 1550px;
+        height: 94vh;
+        border-radius: 40px;
+        box-shadow:
+            0 30px 60px -12px rgba(0, 0, 0, 0.2),
+            0 18px 36px -5px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transform: scale(0.9) translateY(40px);
+        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        opacity: 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .modal-overlay.open .modal-content {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    /* Header */
+    .modal-header {
+        padding: 30px 60px 0;
+        background: linear-gradient(to bottom, #f8fafc, white);
+        border-bottom: 1px solid #f1f5f9;
+        position: relative;
+    }
+    .header-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .operator-profile {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+    }
+    .profile-img-container {
+        width: 85px;
+        height: 85px;
+        border-radius: 20px;
+        overflow: hidden;
+        border: 4px solid white;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+        background: #f1f5f9;
+        flex-shrink: 0;
+    }
+    .profile-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .profile-info h1 {
+        font-size: 1.6rem;
+        font-weight: 900;
+        color: #1e293b;
+        margin: 0 0 2px 0;
+        letter-spacing: -0.5px;
+    }
+    .role-tag {
+        display: inline-block;
+        padding: 2px 10px;
+        background: #f1f5f9;
+        color: #64748b;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px 20px;
+        margin-top: 10px;
+    }
+    .detail-item {
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #64748b;
+        font-weight: 500;
+    }
+    .detail-item strong {
+        color: #334155;
+        font-weight: 700;
+    }
+
+    /* Quick Stats */
+    .quick-stats {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+    }
+    .stat-box {
+        padding: 12px 16px;
+        border-radius: 20px;
+        flex: 1;
+        min-width: 140px;
+        height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .stat-box::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+            circle,
+            rgba(255, 255, 255, 0.15) 0%,
+            transparent 70%
+        );
+    }
+    .stat-box.dark {
+        background: linear-gradient(135deg, #2d3748, #1a202c);
+        color: white;
+    }
+    .stat-box.primary {
+        background: linear-gradient(135deg, #4cc253, #45af4b);
+        color: white;
+    }
+    .stat-main {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .stat-main .value {
+        font-size: 1.4rem;
+        font-weight: 900;
+        line-height: 1;
+        display: block;
+        letter-spacing: -0.5px;
+    }
+    .stat-main .label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        opacity: 0.8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .status-indicator {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 3px 10px;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        align-self: flex-start;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        transition: all 0.3s ease;
+    }
+
+    /* Close Button */
+    .close-modal-btn {
+        background: white;
+        border: 1px solid #e2e8f0;
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        color: #94a3b8;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    }
+    .close-modal-btn:hover {
+        background: #fef2f2;
+        color: #ef4444;
+        border-color: #fee2e2;
+        transform: rotate(90deg);
+    }
+
+    /* Navigation */
+    .modal-nav {
+        display: flex;
+        gap: 40px;
+        margin-top: 15px;
+    }
+    .nav-btn {
+        padding: 12px 4px;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        font-weight: 800;
+        color: #94a3b8;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .nav-btn:hover {
+        color: #1e293b;
+    }
+    .nav-btn.active {
+        color: #4cc253;
+        border-bottom-color: #4cc253;
+    }
+    .nav-btn.active :global(svg) {
+        transform: scale(1.1);
+        transition: transform 0.3s ease;
+    }
+
+    /* Body & Tabs */
+    .modal-body {
+        flex: 1;
+        padding: 30px 60px;
+        overflow-y: auto;
+        background: #f8fafc;
+    }
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+        animation: slideUp 0.4s ease forwards;
+    }
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Sections */
+    .body-section {
+        margin-bottom: 30px;
+    }
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .section-header h2 {
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    /* Charts */
+    .chart-container {
+        height: 450px;
+        background: #fff;
+        padding: 30px;
+        border-radius: 28px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.02);
+    }
+
+    /* Tables */
+    .table-section {
+        margin-top: 30px;
+    }
+    .table-header-box {
+        background: var(--color-primario);
+        padding: 15px 25px;
+        border-radius: 18px 18px 0 0;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .table-header-box.secondary {
+        background: #2c3e50;
+    }
+    .premium-table-container {
+        background: white;
+        border-radius: 0 0 18px 18px;
+        border: 1px solid #f0f0f0;
+        overflow: hidden;
+    }
+    .premium-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .premium-table th {
+        padding: 15px 25px;
+        background: #fafafa;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #94a3b8;
+        border-bottom: 1px solid #f0f0f0;
+        text-align: left;
+    }
+    .premium-table td {
+        padding: 18px 25px;
+        font-size: 0.85rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .badge-status {
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+    .badge-status.success {
+        background: #ecfdf5;
+        color: #4cc253;
+    }
+    .badge-status.danger {
+        background: #fef2f2;
+        color: #ef4444;
+    }
+
+    /* Novelties */
+    .novelties-section {
+        margin-top: 30px;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: var(--sombra-suave);
+    }
+    .novelties-header {
+        background: #4cc253;
+        padding: 15px 25px;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .novelties-content {
+        background: white;
+        padding: 25px;
+    }
+    .novelties-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 25px;
+        text-align: center;
+    }
+    .summary-item .val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        display: block;
+    }
+    .summary-item .lab {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    /* Filters */
+    .internal-filters {
+        background: white;
+        padding: 15px 25px;
+        border-radius: 18px;
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+        box-shadow: var(--sombra-suave);
+    }
+    .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+    }
+    .clean-select {
+        border: 1px solid #e2e8f0;
+        padding: 8px 15px;
+        border-radius: 10px;
+        font-size: 0.8rem;
+    }
+
+    /* Utils */
+    .ms-auto {
+        margin-left: auto;
+    }
+    .rotate-180 {
+        transform: rotate(180deg);
+    }
+    .text-success {
+        color: #4cc253;
+    }
+    .text-danger {
+        color: #ef4444;
+    }
+    .text-primary {
+        color: #3b82f6;
+    }
+</style>
+
+<style is:global>
+    /* Estilos Globales para el Modal de Detalles (Para que apliquen a elementos dinámicos) */
+    .detail-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        animation: fadeInNov 0.3s ease;
+    }
+    .detail-modal-content {
+        background: white;
+        width: 95%;
+        max-width: 1300px;
+        border-radius: 30px;
+        overflow: hidden;
+        box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3);
+        animation: slideUpNov 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .detail-modal-header {
+        background: #4cc253;
+        padding: 35px 45px;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        position: relative;
+    }
+    .detail-modal-header h2 {
+        font-size: 2.5rem;
+        font-weight: 900;
+        margin: 0;
+        line-height: 1;
+        letter-spacing: -2px;
+    }
+    .detail-modal-header h3 {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 8px 0 18px;
+        opacity: 0.95;
+    }
+    .detail-badge {
+        background: rgba(255, 255, 255, 0.25);
+        padding: 6px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        backdrop-filter: blur(4px);
+    }
+    .close-detail-modal {
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    .close-detail-modal:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: rotate(90deg);
+    }
+    .detail-modal-body {
+        padding: 40px 45px;
+    }
+    .results-count {
+        color: #64748b;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 30px;
+        display: block;
+    }
+    .detail-table-wrapper {
+        max-height: 450px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+    .detail-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .detail-table th {
+        text-align: left;
+        padding: 15px 10px;
+        color: #94a3b8;
+        font-size: 0.85rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-bottom: 2px solid #f1f5f9;
+        background: white;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .detail-table td {
+        padding: 20px 10px;
+        color: #1e293b;
+        font-size: 1rem;
+        border-bottom: 1px solid #f8fafc;
+    }
+    .detail-table tr:hover td {
+        background: #f8fafc;
+    }
+    .badge-days {
+        background: #f0fdf4;
+        color: #4cc253;
+        padding: 4px 14px;
+        border-radius: 8px;
+        font-weight: 800;
+        font-size: 0.9rem;
+        display: inline-block;
+        border: 1px solid #dcfce7;
+    }
+
+    @keyframes fadeInNov {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    @keyframes slideUpNov {
+        from {
+            transform: translateY(40px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Estilos para el Zoom de Imagen */
+    .image-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(0px);
+    }
+
+    .image-modal-overlay.open {
+        opacity: 1;
+        visibility: visible;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(10px);
+    }
+
+    .image-modal-container {
+        position: relative;
+        max-width: 90%;
+        max-height: 90%;
+        transform: scale(0.9);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .image-modal-overlay.open .image-modal-container {
+        transform: scale(1);
+    }
+
+    .image-modal-container img {
+        max-width: 100%;
+        max-height: 85vh;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        border: 4px solid white;
+        display: block;
+    }
+
+    .image-modal-close {
+        position: absolute;
+        top: -20px;
+        right: -20px;
+        width: 44px;
+        height: 44px;
+        background: white;
+        border: none;
+        border-radius: 50%;
+        font-size: 28px;
+        font-weight: bold;
+        color: #333;
+        cursor: pointer;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        transition: all 0.2s;
+    }
+
+    .image-modal-close:hover {
+        transform: scale(1.1) rotate(90deg);
+        color: #ef4444;
+    }
+
+    .profile-img-container {
+        cursor: pointer;
+        transition: transform 0.3s;
+    }
+
+    .profile-img-container:hover {
+        transform: scale(1.05);
+    }
+
+    .discount-pill {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #ef4444;
+        background: #fef2f2;
+        padding: 2px 8px;
+        border-radius: 6px;
+        margin-left: 6px;
+        border: 1px solid #fee2e2;
+        display: inline-flex;
+        align-items: center;
+        vertical-align: middle;
+        position: relative;
+        top: -2px;
+    }
+</style>

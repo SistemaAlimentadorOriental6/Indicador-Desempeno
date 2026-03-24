@@ -1,0 +1,169 @@
+---
+import Icon from "@components/ui/Icon.astro";
+
+interface Props {
+    id?: string;
+    label: string;
+    icon:
+        | "trophy"
+        | "users"
+        | "medal"
+        | "alert"
+        | "wrench"
+        | "search"
+        | "filter"
+        | "award"
+        | "activity"
+        | "clock"
+        | "dollar"
+        | "target"
+        | "calendar"
+        | "map-pin"
+        | "id-card"
+        | "trending-up"
+        | "trending-down"
+        | "user-check"
+        | "percent"
+        | "check"
+        | "chevron-down"
+        | "eye"
+        | "eye-off"
+        | "x";
+    type?: "primary" | "success" | "warning" | "danger" | "info";
+    trendId?: string;
+    showProgress?: boolean;
+    progressBarId?: string;
+    gridClass?: string;
+}
+
+const {
+    id,
+    label,
+    icon,
+    type = "primary",
+    trendId,
+    showProgress,
+    progressBarId,
+    gridClass = "",
+} = Astro.props;
+---
+
+<div class={`kpi-card ${gridClass}`}>
+    <div class={`kpi-icon-box ${type}`}>
+        <Icon name={icon} size={24} />
+    </div>
+    <div class="kpi-content">
+        <div class="kpi-value-row">
+            <span class="kpi-value" id={id}>---</span>
+            {
+                trendId && (
+                    <span class="kpi-trend" id={trendId}>
+                        ---
+                    </span>
+                )
+            }
+        </div>
+        <p class="kpi-label">{label}</p>
+    </div>
+    {
+        showProgress && (
+            <div class="kpi-progress-bar">
+                <div class="progress" id={progressBarId} style="width: 0%" />
+            </div>
+        )
+    }
+</div>
+
+<style>
+    .kpi-card {
+        background: white;
+        padding: 30px 25px;
+        border-radius: 28px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    .kpi-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.06);
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+    .kpi-icon-box {
+        width: 54px;
+        height: 54px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 5px;
+    }
+    .kpi-icon-box.success {
+        background: #f0fdf4;
+        color: #4cc253;
+    }
+    .kpi-icon-box.primary {
+        background: #f0f9ff;
+        color: #0ea5e9;
+    }
+    .kpi-icon-box.warning {
+        background: #fffbeb;
+        color: #f59e0b;
+    }
+    .kpi-icon-box.danger {
+        background: #fef2f2;
+        color: #ef4444;
+    }
+    .kpi-icon-box.info {
+        background: #f5f3ff;
+        color: #8b5cf6;
+    }
+
+    .kpi-content {
+        text-align: center;
+    }
+    .kpi-value-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 4px;
+    }
+    .kpi-value {
+        font-size: 2.2rem;
+        font-weight: 950;
+        color: #1e293b;
+        letter-spacing: -1px;
+    }
+    .kpi-trend {
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: #4cc253;
+    }
+    .kpi-label {
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: #94a3b8;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+    .kpi-progress-bar {
+        height: 8px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        overflow: hidden;
+        width: 100%;
+        margin-top: 10px;
+    }
+    .kpi-progress-bar .progress {
+        height: 100%;
+        background: linear-gradient(to right, #4cc253, #6ee7b7);
+        border-radius: 10px;
+        transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+</style>

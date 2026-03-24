@@ -1,0 +1,362 @@
+---
+import Icon from "@components/ui/Icon.astro";
+---
+
+<div
+    id="modal-nov-detail-global"
+    class="nov-detail-modal-root"
+    style="display: none;"
+>
+    <div class="nov-detail-overlay"></div>
+    <div class="nov-detail-container">
+        <div class="nov-detail-header">
+            <div class="header-info">
+                <h2 id="nov-det-code">---</h2>
+                <h3 id="nov-det-label">---</h3>
+                <span class="year-badge" id="nov-det-year">Año ---</span>
+            </div>
+            <button type="button" class="close-btn" id="nov-det-close">
+                <Icon name="x" size={24} color="white" />
+            </button>
+        </div>
+        <div class="nov-detail-body">
+            <span class="count-text" id="nov-det-count">0 incidencias</span>
+            <div class="table-scroll">
+                <table class="nov-det-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha Inicio</th>
+                            <th>Fecha Fin</th>
+                            <th class="text-center">Días</th>
+                            <th>Observaciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nov-det-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const el = {
+        root: document.getElementById("modal-nov-detail-global"),
+        code: document.getElementById("nov-det-code"),
+        label: document.getElementById("nov-det-label"),
+        year: document.getElementById("nov-det-year"),
+        count: document.getElementById("nov-det-count"),
+        body: document.getElementById("nov-det-body"),
+        close: document.getElementById("nov-det-close"),
+    };
+
+    (window as any).openNoveltyDetail = (
+        factor: string,
+        label: string,
+        year: string,
+        items: any[],
+    ) => {
+        if (!el.root) return;
+
+        if (el.code) el.code.textContent = factor;
+        if (el.label) el.label.textContent = label;
+        if (el.year) el.year.textContent = `Año ${year}`;
+        if (el.count)
+            el.count.textContent = `${items.length} incidencias encontradas`;
+
+        if (el.body) {
+            el.body.replaceChildren();
+            const fragment = document.createDocumentFragment();
+
+            items.forEach((n, index) => {
+                const tr = document.createElement("tr");
+                tr.style.opacity = "0";
+                tr.style.transform = "translateY(10px)";
+                tr.style.transition = `all 0.4s ease ${index * 0.05}s`;
+
+                const fInicio = new Date(
+                    n.fechaInicioNovedad,
+                ).toLocaleDateString();
+                const fFin = n.fechaFinNovedad
+                    ? new Date(n.fechaFinNovedad).toLocaleDateString()
+                    : fInicio;
+
+                // Cálculo de días
+                const start = new Date(n.fechaInicioNovedad).getTime();
+                const end = n.fechaFinNovedad
+                    ? new Date(n.fechaFinNovedad).getTime()
+                    : start;
+                const diffDays =
+                    Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+                const tdStart = document.createElement("td");
+                tdStart.textContent = fInicio;
+
+                const tdEnd = document.createElement("td");
+                tdEnd.textContent = fFin;
+
+                const tdDays = document.createElement("td");
+                tdDays.className = "text-center";
+                const dayBadge = document.createElement("span");
+                dayBadge.className = "badge-days-premium";
+                dayBadge.textContent = diffDays.toString();
+                tdDays.appendChild(dayBadge);
+
+                const tdObs = document.createElement("td");
+                tdObs.textContent = n.observaciones || "Sin observaciones";
+
+                tr.append(tdStart, tdEnd, tdDays, tdObs);
+                fragment.appendChild(tr);
+
+                setTimeout(() => {
+                    tr.style.opacity = "1";
+                    tr.style.transform = "translateY(0)";
+                }, 100);
+            });
+
+            el.body.appendChild(fragment);
+        }
+
+        el.root.style.display = "flex";
+        setTimeout(() => el.root?.classList.add("active"), 10);
+    };
+
+    const close = () => {
+        if (!el.root) return;
+        el.root.classList.remove("active");
+        setTimeout(() => {
+            if (el.root) el.root.style.display = "none";
+        }, 350);
+    };
+    el.close?.addEventListener("click", close);
+    el.root?.addEventListener("click", (e) => {
+        if (
+            e.target === el.root ||
+            (e.target as HTMLElement).classList.contains("nov-detail-overlay")
+        )
+            close();
+    });
+</script>
+
+<style is:global>
+    :root {
+        --nov-primary-raw: 76, 194, 83;
+        --nov-primary: rgb(var(--nov-primary-raw));
+        --nov-text-dark: #2c3e50;
+        --nov-text-grey: #a0a6ae;
+        --nov-bg-soft: #f4f7f8;
+        --nov-shadow-premium:
+            0 25px 50px -12px rgba(0, 0, 0, 0.15),
+            0 15px 30px -5px rgba(0, 0, 0, 0.08);
+    }
+
+    .nov-detail-modal-root {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100000;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.35s ease;
+    }
+
+    .nov-detail-modal-root.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .nov-detail-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(8px);
+    }
+
+    .nov-detail-container {
+        position: relative;
+        background: #ffffff;
+        width: 90%;
+        max-width: 850px;
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow: var(--nov-shadow-premium);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        transform: translateY(30px) scale(0.96);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .nov-detail-modal-root.active .nov-detail-container {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    .nov-detail-header {
+        padding: 40px 50px 30px;
+        background: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    }
+
+    .header-info h2 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--nov-primary);
+        margin: 0;
+        line-height: 1;
+        letter-spacing: -1px;
+    }
+
+    .header-info h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--nov-text-dark);
+        margin: 8px 0 15px;
+        opacity: 0.8;
+    }
+
+    .year-badge {
+        display: inline-block;
+        background: var(--nov-bg-soft);
+        color: var(--nov-primary);
+        padding: 6px 16px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .close-btn {
+        background: var(--nov-bg-soft);
+        border: none;
+        width: 45px;
+        height: 45px;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--nov-text-dark);
+    }
+
+    .close-btn:hover {
+        background: rgba(var(--nov-primary-raw), 0.1);
+        color: var(--nov-primary);
+        transform: scale(1.05);
+    }
+
+    .close-btn:active {
+        transform: scale(0.95);
+    }
+
+    .nov-detail-body {
+        padding: 30px 50px 45px;
+    }
+
+    .count-text {
+        color: var(--nov-text-grey);
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 25px;
+        display: block;
+    }
+
+    .table-scroll {
+        max-height: 400px;
+        overflow-y: auto;
+        border-radius: 20px;
+        background: white;
+        border: 1px solid var(--nov-bg-soft);
+    }
+
+    .nov-det-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .nov-det-table th {
+        text-align: left;
+        padding: 15px 20px;
+        background: var(--nov-bg-soft);
+        color: var(--nov-text-dark);
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    }
+
+    .nov-det-table td {
+        padding: 20px;
+        font-size: 1rem;
+        color: var(--nov-text-dark);
+        border-bottom: 1px solid var(--nov-bg-soft);
+    }
+
+    .nov-det-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .nov-det-table tr:hover td {
+        background: rgba(var(--nov-primary-raw), 0.02);
+    }
+
+    .badge-days-premium {
+        background: rgba(var(--nov-primary-raw), 0.1);
+        color: var(--nov-primary);
+        padding: 5px 14px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: inline-block;
+    }
+
+    @keyframes novFadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes novModalIn {
+        from {
+            transform: translateY(15px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Scrollbar minimalista */
+    .table-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+    .table-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .table-scroll::-webkit-scrollbar-thumb {
+        background: var(--nov-bg-soft);
+        border-radius: 10px;
+    }
+    .table-scroll::-webkit-scrollbar-thumb:hover {
+        background: var(--nov-text-grey);
+    }
+</style>
