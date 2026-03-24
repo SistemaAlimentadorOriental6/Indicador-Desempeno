@@ -1,7 +1,7 @@
 ---
 import "../styles/global.css";
 import OperatorSidebar from "@components/layout/OperatorSidebar.astro";
-import { ViewTransitions } from "astro:transitions";
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
     titulo: string;
@@ -22,7 +22,7 @@ const { titulo } = Astro.props;
             href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
             rel="stylesheet"
         />
-        <ViewTransitions />
+        <ClientRouter />
     </head>
     <body>
         <div class="operator-container">

@@ -1,7 +1,7 @@
 ---
 import "../styles/global.css";
 import Sidebar from "@components/layout/Sidebar.astro";
-import { ViewTransitions } from "astro:transitions";
+import { ClientRouter } from "astro:transitions";
 
 interface Props {
     titulo: string;
@@ -16,7 +16,7 @@ const { titulo } = Astro.props;
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta name="viewport" content="width=device-width" />
         <title>{titulo} | SAO6</title>
-        <ViewTransitions />
+        <ClientRouter />
     </head>
     <body>
         <div class="admin-container">
