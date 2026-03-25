@@ -93,6 +93,9 @@ export class BonoService {
                     bonosProgreso: 0,
                 };
 
+                const fechaRetiroStr = op.fechaRetiro ? String(op.fechaRetiro).trim() : "";
+                const isRetired = fechaRetiroStr !== "" && fechaRetiroStr !== "null";
+
                 return {
                     codigo: op.codigo,
                     nombre: op.nombre,
@@ -100,7 +103,7 @@ export class BonoService {
                     cargo: cargo,
                     rango: metrics.rango || "Taller Conciencia",
                     bonosProgreso: metrics.bonosProgreso || 0,
-                    isActive: !op.fechaRetiro,
+                    isActive: !isRetired,
                 };
             });
         } catch (error) {

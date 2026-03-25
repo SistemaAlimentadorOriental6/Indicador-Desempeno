@@ -65,7 +65,7 @@
                     class="status-grid filter-options"
                     data-filter-group="status"
                 >
-                    <button class="status-card active" data-value="all">
+                    <button class="status-card" data-value="all">
                         <span class="card-left">
                             <svg
                                 width="18"
@@ -83,7 +83,7 @@
                         </span>
                         <span class="card-count" id="count-all">...</span>
                     </button>
-                    <button class="status-card" data-value="active">
+                    <button class="status-card active" data-value="active">
                         <span class="card-left">
                             <svg
                                 width="18"
@@ -326,6 +326,7 @@
 
 <script>
     import { FiltroService, type FiltrosData } from "@services/FiltroService";
+    import { API_CONFIG, getApiUrl } from "@config/api";
 
     document.addEventListener("astro:page-load", () => {
         const modal = document.getElementById("modal-filtros");
@@ -341,6 +342,83 @@
         const cargoSelect = document.getElementById(
             "filter-cargo-select",
         ) as HTMLSelectElement;
+
+        // Variables para almacenar periodos disponibles
+        let periodosDisponibles: {anio: number, meses: number[]}[] = [];
+
+        // Función para cargar periodos disponibles desde la API
+        const cargarPeriodosDisponibles = async () => {
+            try {
+                const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.DESEMPENO.GET_PERIODOS));
+                if (response.ok) {
+                    periodosDisponibles = await response.json();
+                    actualizarOpcionesDePeriodo();
+                }
+            } catch (error) {
+                console.error("Error al cargar periodos disponibles:", error);
+            }
+        };
+
+        const actualizarOpcionesDePeriodo = () => {
+            if (periodosDisponibles.length === 0) return;
+
+            // Conservar selección actual si es válida, sino tomar el más reciente
+            const filtrosActuales = FiltroService.obtenerDeUrl();
+            let anioSeleccionado = filtrosActuales.periodo.anio;
+            let mesSeleccionado = filtrosActuales.periodo.mes;
+
+            // 1. Llenar Select de Años
+            yearSelect.innerHTML = "";
+            periodosDisponibles.forEach(p => {
+                const option = document.createElement("option");
+                option.value = p.anio.toString();
+                option.textContent = p.anio.toString();
+                yearSelect.appendChild(option);
+            });
+
+            // Verificar si el año seleccionado existe, sino tomar el primero
+            if (!periodosDisponibles.some(p => p.anio === anioSeleccionado)) {
+                anioSeleccionado = periodosDisponibles[0].anio;
+            }
+            yearSelect.value = anioSeleccionado.toString();
+
+            // 2. Llenar Select de Meses basado en el Año seleccionado
+            actualizarMesesDisponibles(anioSeleccionado, mesSeleccionado);
+        };
+
+        const actualizarMesesDisponibles = (anio: number, mesSeleccionado: number) => {
+            const periodoObj = periodosDisponibles.find(p => p.anio === anio);
+            if (!periodoObj) return;
+
+            monthSelect.innerHTML = "";
+            const mesesNombres = [
+                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ];
+
+            periodoObj.meses.forEach(mesIndex => {
+                const option = document.createElement("option");
+                option.value = mesIndex.toString();
+                option.textContent = mesesNombres[mesIndex];
+                monthSelect.appendChild(option);
+            });
+
+            // Verificar si el mes seleccionado existe en este año, sino tomar el primero disponible
+            if (!periodoObj.meses.includes(mesSeleccionado)) {
+                mesSeleccionado = periodoObj.meses[0];
+            }
+            monthSelect.value = mesSeleccionado.toString();
+        };
+
+        // Escuchar cambio en el select de años para actualizar meses
+        yearSelect?.addEventListener("change", (e) => {
+            const selectedYear = parseInt((e.target as HTMLSelectElement).value);
+            // Al cambiar año, intentamos mantener el mes actual si existe, sino pasamos -1 para que tome el primero
+            actualizarMesesDisponibles(selectedYear, parseInt(monthSelect.value));
+        });
+
+        // Cargar periodos al inicio
+        cargarPeriodosDisponibles();
 
         /**
          * Inicializa la interfaz del modal basándose en el estado actual (URL)
@@ -403,8 +481,16 @@
                 }
             });
 
-            if (yearSelect) yearSelect.value = filtros.periodo.anio.toString();
-            if (monthSelect) monthSelect.value = filtros.periodo.mes.toString();
+            if (periodosDisponibles.length > 0) {
+                 // Si los datos de la API ya cargaron, actualizamos la vista con ellos
+                 yearSelect.value = filtros.periodo.anio.toString();
+                 actualizarMesesDisponibles(filtros.periodo.anio, filtros.periodo.mes);
+            } else {
+                 // Fallback si aún no carga
+                 if (yearSelect) yearSelect.value = filtros.periodo.anio.toString();
+                 if (monthSelect) monthSelect.value = filtros.periodo.mes.toString();
+            }
+            
             if (cargoSelect) cargoSelect.value = filtros.cargo;
         };
 
@@ -462,7 +548,7 @@
             const nuevosFiltros: Partial<FiltrosData> = {
                 estado: (modal
                     .querySelector('[data-filter-group="status"] .active')
-                    ?.getAttribute("data-value") || "all") as any,
+                    ?.getAttribute("data-value") || "active") as any,
                 cargo: cargoSelect?.value || "all",
                 ordenar: (modal
                     .querySelector('[data-filter-group="sort"] .active')
@@ -494,13 +580,7 @@
         // --- Botón Restablecer ---
         const resetBtn = document.getElementById("reset-modal-btn");
         resetBtn?.addEventListener("click", () => {
-            const defaultFilters = {
-                estado: "all",
-                cargo: "all",
-                ordenar: "ranking",
-                direccion: "asc",
-                periodo: { tipo: "all", anio: 2025, mes: -1 },
-            };
+            const defaultFilters = FiltroService.obtenerPredeterminados();
 
             const event = new CustomEvent("applyFilters", {
                 detail: defaultFilters,

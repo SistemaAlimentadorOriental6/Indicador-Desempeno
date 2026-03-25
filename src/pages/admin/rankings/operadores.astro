@@ -161,13 +161,21 @@ const filtros = [
                     "98707206": "OPERADOR 1.5 SMLV",
                     "1035853821": "OPERADOR 1.5 SMLV",
                     "98565206": "OPERADOR REPOSTAJE",
-                    "71261139": "OPERADOR REPOSTAJE"
+                    "71261139": "OPERADOR REPOSTAJE",
                 };
 
                 const normalizeCargo = (c: string) => {
                     if (!c) return "";
-                    let val = c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
-                    if (val === "OPERADOR DE DIAGNOSTICO" || val === "OPERADOR DE DIAGNOSTICO ") return "OPERADOR DIAGNOSTICO";
+                    let val = c
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .toUpperCase()
+                        .trim();
+                    if (
+                        val === "OPERADOR DE DIAGNOSTICO" ||
+                        val === "OPERADOR DE DIAGNOSTICO "
+                    )
+                        return "OPERADOR DIAGNOSTICO";
                     return val;
                 };
 
@@ -216,8 +224,13 @@ const filtros = [
                         kmVal = parseFloat(clean) || 0;
                     }
 
-                    // Determinar estado basado en fecha retiro o novedad
-                    const isActive = !op.fechaRetiro;
+                    // Normalizar fecha de retiro para determinar estado
+                    const fechaRetiroStr = op.fechaRetiro
+                        ? String(op.fechaRetiro).trim()
+                        : "";
+                    const isRetired =
+                        fechaRetiroStr !== "" && fechaRetiroStr !== "null";
+                    const isActive = !isRetired;
                     const hasNovelty = false;
 
                     return {
@@ -267,12 +280,14 @@ const filtros = [
                     "OPERADOR REPOSTAJE",
                     "OPERADOR DIAGNOSTICO",
                     "OPERADOR DE ALISTAMIENTO",
-                    "OPERADOR 1.5 SMLV"
+                    "OPERADOR 1.5 SMLV",
                 ].sort();
-                
-                document.dispatchEvent(new CustomEvent("cargosLoaded", {
-                    detail: cargosPermitidos
-                }));
+
+                document.dispatchEvent(
+                    new CustomEvent("cargosLoaded", {
+                        detail: cargosPermitidos,
+                    }),
+                );
 
                 // Render inicial
                 initIntersectionObserver();
@@ -381,7 +396,9 @@ const filtros = [
 
             // 2.2 Cargo
             if (currentFilters.cargo && currentFilters.cargo !== "all") {
-                result = result.filter((op) => op.cargo === currentFilters.cargo);
+                result = result.filter(
+                    (op) => op.cargo === currentFilters.cargo,
+                );
             }
 
             // 2.5 Rango
@@ -389,6 +406,15 @@ const filtros = [
                 result = result.filter(
                     (op) => op.computed.rango === currentFilters.pestana,
                 );
+            }
+
+            // 2.6 Bono Perfecto (Filtro desde modal)
+            if (currentFilters.bono100Rango) {
+                result = result.filter((op) => {
+                    // Criterio correcto: rangoBono === "Oro" garantiza >= 100% bono
+                    const tieneBonoCompleto = op.computed?.rangoBono === "Oro" || op.metrics?.rangoBono === "Oro";
+                    return tieneBonoCompleto && op.computed.rango === currentFilters.bono100Rango;
+                });
             }
 
             // 3. Ordenamiento Robusto
@@ -449,12 +475,14 @@ const filtros = [
                 grid.innerHTML = "";
             }
 
-            const currentCount = append ? grid.children.length : 0;
+            const fragment = document.createDocumentFragment();
 
             list.forEach((op, index) => {
                 const metrics = op.metrics;
                 const cardWrapper = document.createElement("div");
                 cardWrapper.className = "card-entry operator-card-trigger";
+                // Pequeña optimización: usar un delay fijo si son muchos elementos para evitar cálculo excesivo
+                // o usar CSS variables si es posible, pero mantenemos simple por ahora.
                 cardWrapper.style.animationDelay = `${Math.min(index * 0.05, 0.5)}s`;
 
                 const rangoClase = (op.computed.rango || "Mejorar")
@@ -474,25 +502,27 @@ const filtros = [
                     });
                 };
 
+                // Usamos dataset para delegación de eventos
+                cardWrapper.dataset.nombre = op.nombre;
+                cardWrapper.dataset.rango = op.computed.rango;
+                cardWrapper.dataset.eficiencia = metrics.eficiencia;
+                cardWrapper.dataset.efAnual = metrics.efAnual;
+                cardWrapper.dataset.imagen = op.foto;
+                cardWrapper.dataset.codigo = op.codigo;
+                cardWrapper.dataset.cedula = op.cedula;
+                cardWrapper.dataset.cargo = op.cargo || "OPERADOR";
+                cardWrapper.dataset.zona = op.zona || "";
+                cardWrapper.dataset.padrino = op.padrino || "";
+                cardWrapper.dataset.nacimiento = op.fechaNacimiento || "";
+                cardWrapper.dataset.ingreso = op.fechaIngreso || "";
+                cardWrapper.dataset.retiro = op.fechaRetiro || "";
+
                 cardWrapper.innerHTML = `
-                        <div class="operator-card ${isRetired ? "is-retired" : ""}" 
-                             data-nombre="${op.nombre}" 
-                             data-rango="${op.computed.rango}" 
-                             data-eficiencia="${metrics.eficiencia}" 
-                             data-ef-anual="${metrics.efAnual}"
-                             data-imagen="${op.foto}"
-                             data-codigo="${op.codigo}"
-                             data-cedula="${op.cedula}"
-                             data-cargo="${op.cargo || "OPERADOR"}"
-                             data-zona="${op.zona || ""}"
-                             data-padrino="${op.padrino || ""}"
-                             data-nacimiento="${op.fechaNacimiento || ""}"
-                             data-ingreso="${op.fechaIngreso || ""}"
-                             data-retiro="${op.fechaRetiro || ""}">
+                        <div class="operator-card ${isRetired ? "is-retired" : ""}">
                             <div class="rank-badge ${rangoClase}">#${op.computed.globalRank}</div>
                             <div class="card-header">
                                 <div class="avatar-wrapper">
-                                    <img src="${op.foto}" alt="${op.nombre}" class="operator-img" loading="lazy" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 24 24%22 fill%3D%22%23cbd5e1%22%3E%3Cpath d%3D%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22%2F%3E%3C%2Fsvg%3E'; this.classList.add('is-placeholder');" />
+                                    <img src="${op.foto}" alt="${op.nombre}" class="operator-img" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22 viewBox%3D%220 0 24 24%22 fill%3D%22%23cbd5e1%22%3E%3Cpath d%3D%22M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z%22%2F%3E%3C%2Fsvg%3E'; this.classList.add('is-placeholder');" />
                                     <div class="status-tag ${rangoClase}">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
                                         ${op.computed.rango.toUpperCase()}
@@ -566,10 +596,10 @@ const filtros = [
                         </div>
                     `;
 
-                // Agregar evento de click al wrapper recién creado
-                cardWrapper.addEventListener("click", toggleModal);
-                grid.appendChild(cardWrapper);
+                fragment.appendChild(cardWrapper);
             });
+
+            grid.appendChild(fragment);
         }
 
         function updateMeta(totalCount: number) {
@@ -588,12 +618,9 @@ const filtros = [
         }
 
         function updateCounts() {
-            // Para los contadores de las pestañas (Oro, Plata, etc.),
-            // debemos filtrar allOperators por los criterios de búsqueda y estado ACTUALES,
-            // pero SIN filtrar por la pestaña misma.
-            let baseForCounts = [...allOperators];
+            // 1. Filtrar primero SOLO por búsqueda para tener la base real de conteo de estados
+            let baseForStateCounts = [...allOperators];
 
-            // 1. Filtrar por Búsqueda (si existe)
             if (currentFilters.busqueda) {
                 const normalize = (text: string) =>
                     text
@@ -604,20 +631,31 @@ const filtros = [
                 const q = normalize(currentFilters.busqueda);
                 const searchTerms = q.split(" ").filter((t) => t.length > 0);
 
-                baseForCounts = baseForCounts.filter((op) => {
-                    const searchableString = normalize(`
-                        ${op.nombre || ""} 
-                        ${op.cedula || ""} 
-                        ${op.codigo || ""} 
-                        ${op.cargo || ""}
-                    `);
+                baseForStateCounts = baseForStateCounts.filter((op) => {
+                    const searchableString = normalize(
+                        `${op.nombre || ""} ${op.cedula || ""} ${op.codigo || ""} ${op.cargo || ""}`,
+                    );
                     return searchTerms.every((term) =>
                         searchableString.includes(term),
                     );
                 });
             }
 
-            // 2. Filtrar por Estado
+            // Contar estados basándose en la búsqueda (sin aplicar filtros de estado ni cargo aún)
+            let countAll = baseForStateCounts.length;
+            let countActive = 0;
+            let countInactive = 0;
+            let countNovelty = 0;
+
+            baseForStateCounts.forEach((op) => {
+                if (op.computed.isActive) countActive++;
+                else countInactive++;
+                if (op.computed.hasNovelty) countNovelty++;
+            });
+
+            // 2. Ahora sí, aplicar filtro de Estado y Cargo para contar las pestañas (Oro, Plata, etc)
+            let baseForCounts = [...baseForStateCounts];
+
             if (currentFilters.estado !== "all") {
                 if (currentFilters.estado === "active") {
                     baseForCounts = baseForCounts.filter(
@@ -634,30 +672,31 @@ const filtros = [
                 }
             }
 
-            // 3. Filtrar por Cargo (Agregado para que los contadores coincidan con el filtro actual)
             if (currentFilters.cargo && currentFilters.cargo !== "all") {
                 baseForCounts = baseForCounts.filter(
                     (op) => op.cargo === currentFilters.cargo,
                 );
             }
 
-            const counts: any = {
-                Todos: baseForCounts.length,
-                Oro: baseForCounts.filter((op) => op.computed.rango === "Oro")
-                    .length,
-                Plata: baseForCounts.filter(
-                    (op) => op.computed.rango === "Plata",
-                ).length,
-                Bronce: baseForCounts.filter(
-                    (op) => op.computed.rango === "Bronce",
-                ).length,
-                Mejorar: baseForCounts.filter(
-                    (op) => op.computed.rango === "Mejorar",
-                ).length,
-                "Taller Conciencia": baseForCounts.filter(
-                    (op) => op.computed.rango === "Taller Conciencia",
-                ).length,
-            };
+            // Un solo pase para contar todas las categorías (Pestañas)
+            const counts = baseForCounts.reduce(
+                (acc, op) => {
+                    acc.Todos++;
+                    const rango = op.computed.rango || "Mejorar";
+                    if (acc[rango] !== undefined) {
+                        acc[rango]++;
+                    }
+                    return acc;
+                },
+                {
+                    Todos: 0,
+                    Oro: 0,
+                    Plata: 0,
+                    Bronce: 0,
+                    Mejorar: 0,
+                    "Taller Conciencia": 0,
+                },
+            );
 
             // Actualizar badges en las pestañas
             const tabBtns = document.querySelectorAll(".tab-btn");
@@ -675,15 +714,12 @@ const filtros = [
             // Actualizar el nuevo indicador de "100% Bono" en el HeaderCard
             updateBonoPerfectoStats(baseForCounts);
 
-            // Mantener compatibilidad con otros componentes si escuchan este evento
+            // Mantener compatibilidad con el modal enviando los conteos reales sin sesgo de estado
             const apiCounts = {
-                all: baseForCounts.length,
-                active: baseForCounts.filter((op) => op.computed.isActive)
-                    .length,
-                inactive: baseForCounts.filter((op) => !op.computed.isActive)
-                    .length,
-                novelty: baseForCounts.filter((op) => op.computed.hasNovelty)
-                    .length,
+                all: countAll,
+                active: countActive,
+                inactive: countInactive,
+                novelty: countNovelty,
             };
 
             const event = new CustomEvent("updateFilterCounts", {
@@ -693,50 +729,73 @@ const filtros = [
         }
 
         // Datos globales del modal de bono
-        let _bonoModalData: { porRango: Record<string, number>; total: number; periodo: string } | null = null;
+        let _bonoModalData: {
+            porRango: Record<string, number>;
+            total: number;
+            periodo: string;
+        } | null = null;
 
         function updateBonoPerfectoStats(operadoresBase: any[]) {
-            const statsContainer = document.getElementById("bono-perfecto-stats");
+            const statsContainer = document.getElementById(
+                "bono-perfecto-stats",
+            );
             if (!statsContainer) return;
 
-            const operadoresBonoPerfecto = operadoresBase.filter(op => {
-                const bonoPct = op.metrics?.bonosProgreso || op.computed?.bonosProgreso || 0;
-                const rango = op.computed?.rango || "";
-                return bonoPct >= 100 && rango !== "Taller Conciencia";
+            // Solo cuentan los que tienen rangoBono = "Oro" (>= 100% cumplimiento del bono)
+            const operadoresBonoPerfecto = operadoresBase.filter((op) => {
+                return op.computed?.rangoBono === "Oro" || op.metrics?.rangoBono === "Oro";
             });
 
             statsContainer.classList.remove("hidden");
 
-            const countOro    = operadoresBonoPerfecto.filter(op => op.computed.rango === "Oro").length;
-            const countPlata  = operadoresBonoPerfecto.filter(op => op.computed.rango === "Plata").length;
-            const countBronce = operadoresBonoPerfecto.filter(op => op.computed.rango === "Bronce").length;
-            const countMejorar = operadoresBonoPerfecto.filter(op => op.computed.rango === "Mejorar").length;
+            const countOro = operadoresBonoPerfecto.filter(
+                (op) => op.computed.rango === "Oro",
+            ).length;
+            const countPlata = operadoresBonoPerfecto.filter(
+                (op) => op.computed.rango === "Plata",
+            ).length;
+            const countBronce = operadoresBonoPerfecto.filter(
+                (op) => op.computed.rango === "Bronce",
+            ).length;
+            const countMejorar = operadoresBonoPerfecto.filter(
+                (op) => op.computed.rango === "Mejorar",
+            ).length;
+            const countTaller = operadoresBonoPerfecto.filter(
+                (op) => op.computed.rango === "Taller Conciencia",
+            ).length;
             const total = operadoresBonoPerfecto.length;
 
             // Actualizar badges del HeaderCard
-            const elOro    = document.getElementById("bp-count-oro");
-            const elPlata  = document.getElementById("bp-count-plata");
+            const elOro = document.getElementById("bp-count-oro");
+            const elPlata = document.getElementById("bp-count-plata");
             const elBronce = document.getElementById("bp-count-bronce");
             const elMejorar = document.getElementById("bp-count-mejorar");
-            const elTaller  = document.getElementById("bp-count-taller");
-            const elTotal   = document.getElementById("bp-count-total");
+            const elTaller = document.getElementById("bp-count-taller");
+            const elTotal = document.getElementById("bp-count-total");
 
-            if (elOro)    elOro.textContent    = countOro.toString();
-            if (elPlata)  elPlata.textContent  = countPlata.toString();
+            if (elOro) elOro.textContent = countOro.toString();
+            if (elPlata) elPlata.textContent = countPlata.toString();
             if (elBronce) elBronce.textContent = countBronce.toString();
             if (elMejorar) elMejorar.textContent = countMejorar.toString();
-            if (elTaller)  elTaller.textContent  = "0";
-            if (elTotal)   elTotal.textContent   = total.toString();
+            if (elTaller) elTaller.textContent = countTaller.toString();
+            if (elTotal) elTotal.textContent = total.toString();
 
             // Guardar datos para el modal
-            const periodo = currentFilters.periodo.tipo === "all"
-                ? "Todos los periodos"
-                : currentFilters.periodo.tipo === "year"
-                    ? `Año ${currentFilters.periodo.anio}`
-                    : `${["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"][currentFilters.periodo.mes]} ${currentFilters.periodo.anio}`;
+            const periodo =
+                currentFilters.periodo.tipo === "all"
+                    ? "Todos los periodos"
+                    : currentFilters.periodo.tipo === "year"
+                      ? `Año ${currentFilters.periodo.anio}`
+                      : `${["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][currentFilters.periodo.mes]} ${currentFilters.periodo.anio}`;
 
             _bonoModalData = {
-                porRango: { Oro: countOro, Plata: countPlata, Bronce: countBronce, Mejorar: countMejorar },
+                porRango: {
+                    Oro: countOro,
+                    Plata: countPlata,
+                    Bronce: countBronce,
+                    Mejorar: countMejorar,
+                    "Taller Conciencia": countTaller,
+                },
                 total,
                 periodo,
             };
@@ -747,7 +806,11 @@ const filtros = [
                 statsContainer.style.cursor = "pointer";
                 statsContainer.addEventListener("click", () => {
                     if (!_bonoModalData) return;
-                    document.dispatchEvent(new CustomEvent("abrirBonoModal", { detail: _bonoModalData }));
+                    document.dispatchEvent(
+                        new CustomEvent("abrirBonoModal", {
+                            detail: _bonoModalData,
+                        }),
+                    );
                 });
             }
         }
@@ -903,16 +966,22 @@ const filtros = [
                 });
             });
 
-            // Buscador
+            // Buscador con Debounce
             const searchInput = document.querySelector(
                 ".input-premium",
             ) as HTMLInputElement;
+
+            let debounceTimer: any;
+
             if (searchInput) {
                 searchInput.addEventListener("input", (e) => {
-                    currentFilters.busqueda = (
-                        e.target as HTMLInputElement
-                    ).value;
-                    applyCurrentFilters();
+                    const val = (e.target as HTMLInputElement).value;
+
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(() => {
+                        currentFilters.busqueda = val;
+                        applyCurrentFilters();
+                    }, 300); // 300ms de retraso
                 });
             }
 
@@ -955,12 +1024,15 @@ const filtros = [
             const modal = document.getElementById("operator-detail-modal");
             if (!modal) return;
 
-            const target = e.currentTarget as HTMLElement;
-            const card = target.querySelector(".operator-card") as HTMLElement;
+            // Usar closest para delegación de eventos
+            const target = e.target as HTMLElement;
+            const cardTrigger = target.closest(
+                ".operator-card-trigger",
+            ) as HTMLElement;
 
-            if (card) {
-                updateModalData(card);
-                const codigo = card.getAttribute("data-codigo");
+            if (cardTrigger) {
+                updateModalData(cardTrigger);
+                const codigo = cardTrigger.dataset.codigo;
                 if (codigo) {
                     if ((window as any).refreshOperatorData) {
                         (window as any).refreshOperatorData(codigo);
@@ -969,32 +1041,34 @@ const filtros = [
                         (window as any).loadAvailableYears(codigo);
                     }
                 }
-            }
 
-            modal.classList.toggle("open");
-            if (modal.classList.contains("open")) {
-                document.body.style.overflow = "hidden";
-                if (typeof (window as any).initDetailChart === "function") {
-                    (window as any).initDetailChart();
+                modal.classList.toggle("open");
+                if (modal.classList.contains("open")) {
+                    document.body.style.overflow = "hidden";
+                    if (typeof (window as any).initDetailChart === "function") {
+                        (window as any).initDetailChart();
+                    }
+                } else {
+                    document.body.style.overflow = "auto";
                 }
-            } else {
-                document.body.style.overflow = "auto";
             }
         };
 
         const updateModalData = (card: HTMLElement) => {
-            const nombre = card.getAttribute("data-nombre");
-            const imagen = card.getAttribute("data-imagen");
-            const eficiencia = card.getAttribute("data-eficiencia");
-            const efAnual = card.getAttribute("data-ef-anual");
-            const codigo = card.getAttribute("data-codigo");
-            const cedula = card.getAttribute("data-cedula");
-            const cargo = card.getAttribute("data-cargo");
-            const zona = card.getAttribute("data-zona") || "Sin zona";
-            const padrino = card.getAttribute("data-padrino") || "No asignado";
-            const nacimiento = card.getAttribute("data-nacimiento");
-            const ingreso = card.getAttribute("data-ingreso");
-            const retiro = card.getAttribute("data-retiro");
+            // Usar dataset en lugar de getAttribute
+            const ds = card.dataset;
+            const nombre = ds.nombre;
+            const imagen = ds.imagen;
+            const eficiencia = ds.eficiencia;
+            const efAnual = ds.efAnual;
+            const codigo = ds.codigo;
+            const cedula = ds.cedula;
+            const cargo = ds.cargo;
+            const zona = ds.zona || "Sin zona";
+            const padrino = ds.padrino || "No asignado";
+            const nacimiento = ds.nacimiento;
+            const ingreso = ds.ingreso;
+            const retiro = ds.retiro;
 
             // Selectores del modal
             const elements = {
@@ -1013,7 +1087,7 @@ const filtros = [
                 estado: document.getElementById("modal-estado"),
             };
 
-            const calculateAge = (dateStr: string | null) => {
+            const calculateAge = (dateStr: string | null | undefined) => {
                 if (!dateStr || dateStr === "null") return "---";
                 const birth = new Date(dateStr);
                 const now = new Date();
@@ -1024,7 +1098,7 @@ const filtros = [
                 return `${age} años`;
             };
 
-            const calculateSeniority = (dateStr: string | null) => {
+            const calculateSeniority = (dateStr: string | null | undefined) => {
                 if (!dateStr || dateStr === "null") return "---";
                 const start = new Date(dateStr);
                 const now = new Date();
@@ -1037,7 +1111,7 @@ const filtros = [
                 return `${years} años, ${months} meses`;
             };
 
-            const formatDate = (dateStr: string | null) => {
+            const formatDate = (dateStr: string | null | undefined) => {
                 if (!dateStr || dateStr === "null") return "---";
                 const d = new Date(dateStr);
                 return d.toLocaleDateString("es-CO");
@@ -1092,9 +1166,58 @@ const filtros = [
             });
         };
 
+        function setupGridEvents() {
+            const grid = document.querySelector(".operators-grid");
+            if (grid) {
+                // Remover listener previo si existe para evitar duplicados al navegar
+                grid.removeEventListener("click", toggleModal);
+                grid.addEventListener("click", toggleModal);
+            }
+        }
+
         document.addEventListener("astro:page-load", () => {
             loadOperators();
             setupModalStaticEvents();
+            setupGridEvents();
+            
+            document.addEventListener("updateFiltersConfig", ((e: CustomEvent) => {
+                const newConfig = e.detail;
+                currentFilters = {
+                    ...currentFilters,
+                    ...newConfig
+                };
+                applyCurrentFilters();
+            }) as EventListener);
+
+            // Escuchar el evento de borrar el filtro de bono
+            document.addEventListener("clearBono100Filtro", () => {
+                if (currentFilters.bono100Rango) {
+                    currentFilters.bono100Rango = null;
+                    applyCurrentFilters();
+                }
+            });
+
+            // Listener para cuando el usuario hace clic en un rango del modal de Bono 100%
+            document.addEventListener(
+                "filterByBonoPerfecto",
+                ((e: CustomEvent) => {
+                    const rango = e.detail;
+                    // Resetear la pestaña a "Todos" para que no choque con el filtro de bono
+                    currentFilters.pestana = "Todos";
+                    currentFilters.bono100Rango = rango;
+                    
+                    // Sincronizar UI de pestañas
+                    document.querySelectorAll(".tab-btn").forEach(btn => {
+                        const nameEl = btn.querySelector(".tab-name");
+                        btn.classList.toggle("active", nameEl?.textContent?.trim() === "Todos");
+                    });
+                    
+                    applyCurrentFilters();
+                    
+                    // Hacer scroll hacia arriba para dar feedback
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }) as EventListener,
+            );
         });
     </script>
 
@@ -1146,6 +1269,8 @@ const filtros = [
             align-items: center;
             width: 100%;
             height: 100%;
+            content-visibility: auto;
+            contain-intrinsic-size: 0 480px;
         }
 
         .operator-card:hover {

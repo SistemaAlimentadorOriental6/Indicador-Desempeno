@@ -91,7 +91,7 @@ jobs:
         run: |
           # Backend
           cd /var/www/operaciones/Indicador-Desempeno/backend
-          pm2 reload indicador-desempeno-backend --update-env || pm2 start dist/main.js --name indicador-desempeno-backend
+          pm2 reload indicador-desempeno-backend --update-env || pm2 start pnpm --name indicador-desempeno-backend -- run start:prod
           
           # Frontend
           cd /var/www/operaciones/Indicador-Desempeno

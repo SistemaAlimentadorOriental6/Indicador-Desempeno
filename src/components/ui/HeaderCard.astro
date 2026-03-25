@@ -31,14 +31,44 @@ const { titulo, subtitulo } = Astro.props;
         <h1>{titulo}</h1>
         <p>{subtitulo}</p>
     </div>
-    
+
     <!-- Contenedor para indicadores de bono perfecto, inyectado via JS -->
     <div id="bono-perfecto-stats" class="bono-perfecto-stats hidden">
         <div class="bp-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+            <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><circle cx="12" cy="8" r="7"></circle><polyline
+                    points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"
+                ></polyline></svg
+            >
             Operadores con 100% Bono
             <span class="bp-ver-grafico">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
+                <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    ><rect x="3" y="12" width="4" height="9"></rect><rect
+                        x="10"
+                        y="7"
+                        width="4"
+                        height="14"></rect><rect
+                        x="17"
+                        y="3"
+                        width="4"
+                        height="18"></rect></svg
+                >
                 Ver gráfico
             </span>
         </div>
@@ -59,7 +89,10 @@ const { titulo, subtitulo } = Astro.props;
                 <span class="bp-dot"></span>
                 Mejorar: <strong id="bp-count-mejorar">0</strong>
             </div>
-            <div class="bp-badge bp-taller" title="Taller Conciencia con bono 100%">
+            <div
+                class="bp-badge bp-taller"
+                title="Taller Conciencia con bono 100%"
+            >
                 <span class="bp-dot"></span>
                 Taller: <strong id="bp-count-taller">0</strong>
             </div>
@@ -112,7 +145,7 @@ const { titulo, subtitulo } = Astro.props;
         color: var(--color-texto-grey);
         font-size: 0.9rem;
     }
-    
+
     /* Estilos para Bono Perfecto Stats */
     .bono-perfecto-stats {
         background: #ffffff;
@@ -123,7 +156,9 @@ const { titulo, subtitulo } = Astro.props;
         flex-direction: column;
         gap: 12px;
         margin-left: auto;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.05),
+            0 2px 4px -1px rgba(0, 0, 0, 0.03);
         cursor: pointer;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
@@ -131,7 +166,9 @@ const { titulo, subtitulo } = Astro.props;
 
     .bono-perfecto-stats:hover {
         transform: translateY(-3px) scale(1.01);
-        box-shadow: 0 12px 28px -8px rgba(76, 194, 83, 0.2), 0 0 0 2px var(--color-primario);
+        box-shadow:
+            0 12px 28px -8px rgba(76, 194, 83, 0.2),
+            0 0 0 2px var(--color-primario);
         border-color: var(--color-primario);
     }
 
@@ -140,9 +177,16 @@ const { titulo, subtitulo } = Astro.props;
     }
 
     @keyframes bounceIcon {
-        0%, 100% { transform: scale(1); }
-        40%       { transform: scale(1.3) rotate(-10deg); }
-        70%       { transform: scale(0.9) rotate(5deg); }
+        0%,
+        100% {
+            transform: scale(1);
+        }
+        40% {
+            transform: scale(1.3) rotate(-10deg);
+        }
+        70% {
+            transform: scale(0.9) rotate(5deg);
+        }
     }
 
     /* Texto "Ver gráfico" */
@@ -170,7 +214,7 @@ const { titulo, subtitulo } = Astro.props;
     .bono-perfecto-stats.hidden {
         display: none !important;
     }
-    
+
     .bp-title {
         font-size: 0.9rem;
         font-weight: 800;
@@ -182,18 +226,18 @@ const { titulo, subtitulo } = Astro.props;
         letter-spacing: 0.5px;
         margin: 0;
     }
-    
+
     .bp-title svg {
         color: var(--color-primario);
     }
-    
+
     .bp-badges {
         display: flex;
         flex-direction: row;
         gap: 8px;
         align-items: center;
     }
-    
+
     .bp-badge {
         display: flex;
         align-items: center;
@@ -217,36 +261,76 @@ const { titulo, subtitulo } = Astro.props;
         font-weight: 800;
         font-size: 0.95rem;
     }
-    
+
     .bp-dot {
         width: 10px;
         height: 10px;
         border-radius: 50%;
     }
-    
-    .bp-oro { border: 1.5px solid #fef08a; background: #fefce8; }
-    .bp-oro .bp-dot { background: #eab308; box-shadow: 0 0 6px rgba(234, 179, 8, 0.5); }
-    .bp-oro strong { color: #ca8a04; }
-    
-    .bp-plata { border: 1.5px solid #e2e8f0; background: #f8fafc; }
-    .bp-plata .bp-dot { background: #94a3b8; box-shadow: 0 0 6px rgba(148, 163, 184, 0.5); }
-    .bp-plata strong { color: #64748b; }
-    
-    .bp-bronce { border: 1.5px solid #fed7aa; background: #fff7ed; }
-    .bp-bronce .bp-dot { background: #f97316; box-shadow: 0 0 6px rgba(249, 115, 22, 0.5); }
-    .bp-bronce strong { color: #c2410c; }
-    
-    .bp-mejorar { border: 1.5px solid #fed7aa; background: #fff7ed; }
-    .bp-mejorar .bp-dot { background: #ea580c; box-shadow: 0 0 6px rgba(234, 88, 12, 0.5); }
-    .bp-mejorar strong { color: #c2410c; }
 
-    .bp-taller { border: 1.5px solid #fecaca; background: #fef2f2; }
-    .bp-taller .bp-dot { background: #ef4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
-    .bp-taller strong { color: #b91c1c; }
-    
-    .bp-total { 
-        background: var(--color-primario); 
-        color: white; 
+    .bp-oro {
+        border: 1.5px solid #fef08a;
+        background: #fefce8;
+    }
+    .bp-oro .bp-dot {
+        background: #eab308;
+        box-shadow: 0 0 6px rgba(234, 179, 8, 0.5);
+    }
+    .bp-oro strong {
+        color: #ca8a04;
+    }
+
+    .bp-plata {
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+    }
+    .bp-plata .bp-dot {
+        background: #94a3b8;
+        box-shadow: 0 0 6px rgba(148, 163, 184, 0.5);
+    }
+    .bp-plata strong {
+        color: #64748b;
+    }
+
+    .bp-bronce {
+        border: 1.5px solid #fed7aa;
+        background: #fff7ed;
+    }
+    .bp-bronce .bp-dot {
+        background: #f97316;
+        box-shadow: 0 0 6px rgba(249, 115, 22, 0.5);
+    }
+    .bp-bronce strong {
+        color: #c2410c;
+    }
+
+    .bp-mejorar {
+        border: 1.5px solid #fed7aa;
+        background: #fff7ed;
+    }
+    .bp-mejorar .bp-dot {
+        background: #ea580c;
+        box-shadow: 0 0 6px rgba(234, 88, 12, 0.5);
+    }
+    .bp-mejorar strong {
+        color: #c2410c;
+    }
+
+    .bp-taller {
+        border: 1.5px solid #fecaca;
+        background: #fef2f2;
+    }
+    .bp-taller .bp-dot {
+        background: #ef4444;
+        box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+    }
+    .bp-taller strong {
+        color: #b91c1c;
+    }
+
+    .bp-total {
+        background: var(--color-primario);
+        color: white;
         border: none;
         padding: 6px 16px;
         box-shadow: 0 4px 10px rgba(34, 197, 94, 0.2);

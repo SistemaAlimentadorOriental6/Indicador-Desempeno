@@ -5,6 +5,11 @@ import { DesempenoService } from './desempeno.service';
 export class DesempenoController {
     constructor(private readonly desempenoService: DesempenoService) { }
 
+    @Get('periodos')
+    async getPeriodos() {
+        return this.desempenoService.getPeriodosDisponibles();
+    }
+
     @Get(':codigo/anios')
     async getAnios(@Param('codigo') codigo: string) {
         return this.desempenoService.getAniosDisponibles(codigo);

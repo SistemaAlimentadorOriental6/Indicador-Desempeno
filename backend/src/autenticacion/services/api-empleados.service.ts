@@ -68,11 +68,16 @@ export class ApiEmpleadosService {
 
             this.logger.log(`Se obtuvieron ${datos.count} empleados de la API externa`);
 
-            // Actualizar cache y formatear códigos a 4 dígitos
-            this.cacheEmpleados = datos.data.map(emp => ({
-                ...emp,
-                CodigoOperador: String(emp.CodigoOperador).padStart(4, '0')
-            }));
+            // Filtrar empleados con cédulas inválidas (longitud <= 5) y formatear códigos
+            this.cacheEmpleados = datos.data
+                .filter(emp => emp.Cedula && emp.Cedula.length > 5)
+                .map(emp => ({
+                    ...emp,
+                    CodigoOperador: String(emp.CodigoOperador).padStart(4, '0')
+                }));
+            
+            this.logger.log(`Se filtraron ${datos.count - this.cacheEmpleados.length} empleados con cédula inválida. Total válidos: ${this.cacheEmpleados.length}`);
+            
             this.ultimaActualizacion = new Date();
 
             return this.cacheEmpleados;

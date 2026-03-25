@@ -353,6 +353,35 @@ export class DesempenoService {
         return raw.map(r => r.anio);
     }
 
+    async getPeriodosDisponibles() {
+        const raw = await this.variableControlRepository.query(
+            `SELECT DISTINCT 
+                YEAR(fecha_inicio_programacion) as anio, 
+                MONTH(fecha_inicio_programacion) as mes 
+             FROM variables_control 
+             WHERE codigo_variable IN ('KM', 'KMS')
+             ORDER BY anio DESC, mes DESC`
+        );
+
+        const periodos = new Map<number, number[]>();
+        
+        raw.forEach(row => {
+            if (!periodos.has(row.anio)) {
+                periodos.set(row.anio, []);
+            }
+            // En SQL los meses vienen 1-12, guardamos como 0-11 para consistencia con JS
+            periodos.get(row.anio)!.push(row.mes - 1); 
+        });
+
+        // Convertir a formato amigable para el frontend
+        const resultado = Array.from(periodos.entries()).map(([anio, meses]) => ({
+            anio,
+            meses: meses.sort((a, b) => b - a) // meses en orden descendente
+        }));
+
+        return resultado.sort((a, b) => b.anio - a.anio); // años en orden descendente
+    }
+
     async obtenerRankingGeneral(anio?: number, mes?: number) {
         // Query para obtener datos MENSUALES de cada empleado
         let whereClause = "";

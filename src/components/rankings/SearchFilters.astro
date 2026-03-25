@@ -123,7 +123,9 @@ const { resultados } = Astro.props;
 <ModalFiltros />
 
 <script>
-    const updateActiveFilterChips = (filtros) => {
+    import { FiltroService, type FiltrosData } from "@services/FiltroService";
+
+    const updateActiveFilterChips = (filtros: FiltrosData) => {
         const container = document.getElementById("active-filters-list");
         if (!container) return;
 
@@ -132,7 +134,7 @@ const { resultados } = Astro.props;
         container.innerHTML = "";
         if (label) container.appendChild(label);
 
-        const createChip = (text, iconSvg) => {
+        const createChip = (text: string, iconSvg: string) => {
             const btn = document.createElement("button");
             btn.className = "filter-mini-btn";
             btn.innerHTML = `${iconSvg} ${text}`;
@@ -150,13 +152,13 @@ const { resultados } = Astro.props;
         }
 
         // 2. Chip de Estado (Actividad)
-        const estadoLabels = {
+        const estadoLabels: Record<string, string> = {
             all: "Todos",
             active: "Activos",
             inactive: "Inactivos",
             novelty: "Con Novedad",
         };
-        if (filtros.estado && filtros.estado !== "all") {
+        if (filtros.estado) {
             container.appendChild(
                 createChip(
                     estadoLabels[filtros.estado] || filtros.estado,
@@ -176,7 +178,7 @@ const { resultados } = Astro.props;
         }
 
         // 3. Chip de Ordenamiento
-        const sortLabels = {
+        const sortLabels: Record<string, string> = {
             ranking: "Ranking",
             bonos: "Bonos",
             km: "Kilómetros",
@@ -223,9 +225,28 @@ const { resultados } = Astro.props;
                 ),
             );
         }
+        
+        // 5. Chip de Bono Perfecto (Deseleccionable)
+        if (filtros.bono100Rango) {
+            const btn = document.createElement("button");
+            btn.className = "filter-mini-btn";
+            btn.style.borderColor = "#4cc253";
+            btn.style.backgroundColor = "#f0fdf4";
+            btn.style.color = "#166534";
+            btn.title = "Clic para quitar filtro";
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg> 
+                100% Bono: ${filtros.bono100Rango} 
+                <span style="margin-left:6px; color:#ef4444; font-size:1.1em; font-weight:900;">✕</span>`;
+            
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                document.dispatchEvent(new CustomEvent("clearBono100Filtro"));
+            });
+            
+            container.appendChild(btn);
+        }
     };
-
-    import { FiltroService } from "@services/FiltroService";
 
     const initSearchFilters = () => {
         const openBtn = document.getElementById("open-filters-btn");
@@ -235,7 +256,7 @@ const { resultados } = Astro.props;
 
         if (!modal) return;
 
-        const toggleModal = (e) => {
+        const toggleModal = (e?: Event) => {
             if (e) e.preventDefault();
             modal.classList.toggle("open");
             if (modal.classList.contains("open")) {

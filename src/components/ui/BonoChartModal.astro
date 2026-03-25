@@ -211,6 +211,22 @@
                 }]
             },
             options: {
+                onClick: (e: any, elements: any[]) => {
+                    if (elements.length > 0) {
+                        const index = elements[0].index;
+                        const clickedRango = modalChart?.data.labels?.[index] as string;
+                        if (clickedRango) {
+                            cerrarModal();
+                            document.dispatchEvent(new CustomEvent('filterByBonoPerfecto', { detail: clickedRango }));
+                        }
+                    }
+                },
+                onHover: (e: any, elements: any[]) => {
+                    const canvas = e.native?.target;
+                    if (canvas) {
+                        canvas.style.cursor = elements && elements.length > 0 ? 'pointer' : 'default';
+                    }
+                },
                 responsive: true,
                 maintainAspectRatio: false,
                 layout: { padding: { top: 70 } },
@@ -275,7 +291,7 @@
         container.innerHTML = Object.entries(porRango).map(([rango, count]) => {
             const col = COLORES[rango];
             return `
-                <div class="bono-mini-badge" style="border-left: 3px solid ${col?.bg}; background: ${col?.soft};">
+                <div class="bono-mini-badge clickable-rango" data-rango="${rango}" style="border-left: 3px solid ${col?.bg}; background: ${col?.soft}; cursor: pointer; title="Filtrar por Bono Perfecto: ${rango}">
                     <div class="bono-mini-badge-info">
                         <span class="bono-mini-dot" style="background: ${col?.bg};"></span>
                         <span class="bono-mini-label">${rango}</span>
@@ -284,6 +300,17 @@
                 </div>
             `;
         }).join("");
+
+        // Agregar EventListeners a los badges clickeables
+        container.querySelectorAll('.clickable-rango').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const rango = (e.currentTarget as HTMLElement).dataset.rango;
+                if (rango) {
+                    cerrarModal();
+                    document.dispatchEvent(new CustomEvent('filterByBonoPerfecto', { detail: rango }));
+                }
+            });
+        });
     }
 
     document.addEventListener("abrirBonoModal", (e: any) => {

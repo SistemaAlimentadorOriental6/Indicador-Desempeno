@@ -15,29 +15,11 @@ import KpiCard from "./shared/KpiCard.astro";
         </div>
     </div>
 
-    <div class="kpi-grid col-4">
+    <div class="kpi-grid">
         <KpiCard
             id="modal-bono-base"
             label="Bono Base"
             icon="dollar"
-            type="success"
-        />
-        <KpiCard
-            id="modal-bono-deduccion"
-            label="Deducción"
-            icon="trending-up"
-            type="danger"
-        />
-        <KpiCard
-            id="modal-bono-descuento"
-            label="% Descuento"
-            icon="percent"
-            type="primary"
-        />
-        <KpiCard
-            id="modal-bono-final"
-            label="Bono Final"
-            icon="check"
             type="success"
         />
     </div>
@@ -143,9 +125,9 @@ import KpiCard from "./shared/KpiCard.astro";
 </div>
 
 <style>
-    .kpi-grid.col-4 {
+    .kpi-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: minmax(300px, 400px);
         gap: 20px;
         margin-bottom: 35px;
     }

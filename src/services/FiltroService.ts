@@ -12,6 +12,7 @@ export interface FiltrosData {
     ordenar: 'ranking' | 'bonos' | 'km' | 'eficiencia';
     direccion: 'asc' | 'desc';
     pestana: string; // Pestañas de categorías (Oro, Plata, etc)
+    bono100Rango?: string | null; // Filtro para bono perfecto
     periodo: {
         tipo: 'all' | 'year' | 'month';
         anio: number;
@@ -28,6 +29,7 @@ const SLUGS = {
         ordenar: 'ordenar_por',
         direccion: 'sentido',
         pestana: 'categoria',
+        bono100: 'bono_perfecto',
         periodoTipo: 'periodo',
         periodoAnio: 'anio',
         periodoMes: 'mes'
@@ -81,11 +83,12 @@ export class FiltroService {
 
         return {
             busqueda: params.get(SLUGS.CLAVES.busqueda) || '',
-            estado: reversarMapeo('estado', SLUGS.CLAVES.estado, 'all') as any,
+            estado: reversarMapeo('estado', SLUGS.CLAVES.estado, 'active') as any,
             cargo: params.get(SLUGS.CLAVES.cargo) || 'all',
             ordenar: reversarMapeo('ordenar', SLUGS.CLAVES.ordenar, 'ranking') as any,
             direccion: reversarMapeo('direccion', SLUGS.CLAVES.direccion, 'asc') as any,
             pestana: params.get(SLUGS.CLAVES.pestana) || 'Todos',
+            bono100Rango: params.get(SLUGS.CLAVES.bono100) || null,
             periodo: {
                 tipo: tipoPeriodo as any,
                 anio: parseInt(params.get(SLUGS.CLAVES.periodoAnio) || '2025'),
@@ -106,7 +109,11 @@ export class FiltroService {
             params.set(SLUGS.CLAVES.busqueda, filtros.busqueda);
         }
 
-        if (filtros.estado && filtros.estado !== 'all') {
+        if (filtros.bono100Rango) {
+            params.set(SLUGS.CLAVES.bono100, filtros.bono100Rango);
+        }
+
+        if (filtros.estado && filtros.estado !== 'active') {
             const val = SLUGS.VALORES.estado[filtros.estado];
             if (val) params.set(SLUGS.CLAVES.estado, val);
         }
@@ -153,7 +160,7 @@ export class FiltroService {
     static obtenerPredeterminados(): FiltrosData {
         return {
             busqueda: '',
-            estado: 'all',
+            estado: 'active',
             cargo: 'all',
             ordenar: 'ranking',
             direccion: 'asc',
