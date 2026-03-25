@@ -853,9 +853,10 @@ const bonusMonths = months.map((m) => ({ ...m, sub: "$0" }));
                 console.log("Graficando KM con datos:", kmData);
                 // const bonusData = vars["BONO"] || vars["BONIFICACION"];
 
-                // Preparar datos para gráficos
-                const labels = data.mensual.map((m: any) => m.nombreMes);
-                const values = data.mensual.map((m: any) => m.cumplimiento);
+                // Preparar datos para gráficos (ordenar cronológicamente por número de mes)
+                const mensualOrdenado = [...data.mensual].sort((a: any, b: any) => a.mes - b.mes);
+                const labels = mensualOrdenado.map((m: any) => m.nombreMes);
+                const values = mensualOrdenado.map((m: any) => m.cumplimiento);
 
                 const baseOptions = {
                     responsive: true,
@@ -942,10 +943,11 @@ const bonusMonths = months.map((m) => ({ ...m, sub: "$0" }));
 
                 // Gráfico KM
                 if (kmData) {
+                    const kmMensualOrdenado = [...kmData.mensual].sort((a: any, b: any) => a.mes - b.mes);
                     createBarChart(
                         "kmChart",
                         labels,
-                        kmData.mensual.map((m: any) => m.cumplimiento),
+                        kmMensualOrdenado.map((m: any) => m.cumplimiento),
                         colors.primary,
                         12,
                         baseOptions,
@@ -956,10 +958,11 @@ const bonusMonths = months.map((m) => ({ ...m, sub: "$0" }));
                 const bonusData =
                     vars["BONO"] || vars["BONIFICACION"] || vars["BONOS"];
                 if (bonusData) {
+                    const bonusMensualOrdenado = [...bonusData.mensual].sort((a: any, b: any) => a.mes - b.mes);
                     createBarChart(
                         "bonusChart",
                         labels,
-                        bonusData.mensual.map((m: any) => m.cumplimiento),
+                        bonusMensualOrdenado.map((m: any) => m.cumplimiento),
                         colors.primary,
                         12,
                         baseOptions,

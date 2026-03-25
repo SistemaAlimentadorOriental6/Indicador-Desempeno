@@ -637,7 +637,8 @@ const { operator } = Astro.props;
             dataProg = globalData.map(d => d.prog);
             dataEff = globalData.map(d => d.eff);
         } else {
-            const sortedMensual = [...kms.mensual].sort((a: any, b: any) => b.cumplimiento - a.cumplimiento);
+            // Ordenar cronológicamente por número de mes (1=enero ... 12=diciembre)
+            const sortedMensual = [...kms.mensual].sort((a: any, b: any) => a.mes - b.mes);
             labels = sortedMensual.map((m: any) => getMonthNameShort(m.nombreMes));
             dataReal = sortedMensual.map((m: any) => m.valorEjecutado);
             dataProg = sortedMensual.map((m: any) => m.valorProgramado);
