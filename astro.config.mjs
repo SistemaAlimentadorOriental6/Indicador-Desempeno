@@ -8,6 +8,10 @@ export default defineConfig({
     adapter: node({
         mode: 'standalone',
     }),
+    server: {
+        port: 3039,
+        host: true,
+    },
     security: {
         checkOrigin: true,
     },

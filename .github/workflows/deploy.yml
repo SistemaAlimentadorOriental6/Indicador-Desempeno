@@ -1,0 +1,107 @@
+name: Indicador Desempeno
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Desplegar en servidor
+    runs-on: self-hosted
+
+    steps:
+      - name: Obtener codigo del repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar carpeta destino
+        run: |
+          sudo mkdir -p /var/www/operaciones
+          sudo rm -rf /var/www/operaciones/Indicador-Desempeno
+          sudo cp -r . /var/www/operaciones/Indicador-Desempeno
+          sudo chown -R desarrollo:desarrollo /var/www/operaciones
+
+      - name: Configurar variables de entorno del backend
+        run: |
+          ENV_FILE="/var/www/operaciones/Indicador-Desempeno/backend/.env"
+          
+          # Funcion para agregar o actualizar variables sin duplicar
+          set_env_var() {
+            local key=$1
+            local value=$2
+            if [ -n "$value" ]; then
+              if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+              else
+                echo "${key}=${value}" >> "$ENV_FILE"
+              fi
+            fi
+          }
+
+          # Inicializar archivo limpio
+          sudo touch "$ENV_FILE"
+          sudo chown desarrollo:desarrollo "$ENV_FILE"
+          > "$ENV_FILE"
+
+          # General
+          set_env_var "PORT" "3040"
+
+          # Configuración de Base de Datos MySQL (Principal)
+          set_env_var "DB_HOST" "${{ secrets.DB_HOST }}"
+          set_env_var "DB_PORT" "${{ secrets.DB_PORT }}"
+          set_env_var "DB_USER" "${{ secrets.DB_USER }}"
+          set_env_var "DB_PASSWORD" "${{ secrets.DB_PASSWORD }}"
+          set_env_var "DB_NAME" "${{ secrets.DB_NAME }}"
+
+          # Configuración de Base de Datos MSSQL (SQLSERVER)
+          set_env_var "SQLSERVER_HOST" "${{ secrets.SQLSERVER_HOST }}"
+          set_env_var "SQLSERVER_PORT" "${{ secrets.SQLSERVER_PORT }}"
+          set_env_var "SQLSERVER_DATABASE" "${{ secrets.SQLSERVER_DATABASE }}"
+          set_env_var "SQLSERVER_USER" "${{ secrets.SQLSERVER_USER }}"
+          set_env_var "SQLSERVER_PASSWORD" "${{ secrets.SQLSERVER_PASSWORD }}"
+
+          # Configuración de Base de Datos Cámaras (DB_CM)
+          set_env_var "DB_CM_HOST" "${{ secrets.DB_CM_HOST }}"
+          set_env_var "DB_CM_PORT" "${{ secrets.DB_CM_PORT }}"
+          set_env_var "DB_CM_USER" "${{ secrets.DB_CM_USER }}"
+          set_env_var "DB_CM_PASSWORD" "${{ secrets.DB_CM_PASSWORD }}"
+          set_env_var "DB_CM_NAME" "${{ secrets.DB_CM_NAME }}"
+
+          sudo chmod 600 "$ENV_FILE"
+
+      - name: Instalar pnpm
+        run: |
+          if ! command -v pnpm &> /dev/null; then
+            sudo npm install -g pnpm
+          fi
+
+      - name: Instalar y construir frontend
+        run: |
+          cd /var/www/operaciones/Indicador-Desempeno
+          pnpm install
+          pnpm run build
+
+      - name: Instalar y construir backend
+        run: |
+          cd /var/www/operaciones/Indicador-Desempeno/backend
+          pnpm install
+          pnpm run build
+
+      - name: Iniciar o Reiniciar servicios con PM2
+        run: |
+          # Backend
+          cd /var/www/operaciones/Indicador-Desempeno/backend
+          pm2 reload indicador-desempeno-backend --update-env || pm2 start dist/main.js --name indicador-desempeno-backend
+          
+          # Frontend
+          cd /var/www/operaciones/Indicador-Desempeno
+          pm2 reload indicador-desempeno-frontend --update-env || pm2 start dist/server/entry.mjs --name indicador-desempeno-frontend
+          
+          sleep 5
+          pm2 status
+
+      - name: Validar despliegue
+        run: |
+          echo "Validando respuesta de servicios..."
+          curl -fs http://localhost:3040/ || echo "Aviso: Backend no responde en puerto 3040"
+          curl -fs http://localhost:3039 || echo "Aviso: Frontend no responde en puerto 3039"

@@ -53,6 +53,7 @@ import { MantenimientoModule } from './mantenimiento/mantenimiento.module';
       entities: [TareaSolicitada],
       synchronize: false,
     }),
+    /*
     TypeOrmModule.forRoot({
       name: 'programacion',
       type: 'mysql',
@@ -64,11 +65,12 @@ import { MantenimientoModule } from './mantenimiento/mantenimiento.module';
       entities: [ProgramacionEmpleado],
       synchronize: false,
     }),
+    */
     AutenticacionModule,
     DesempenoModule,
     CargaDatosModule,
     UsuariosModule,
-    MantenimientoModule,
+    // MantenimientoModule, // Comentado porque depende de la conexión programacion
   ],
   controllers: [AppController],
   providers: [AppService],
