@@ -732,6 +732,7 @@ const filtros = [
         let _bonoModalData: {
             porRango: Record<string, number>;
             total: number;
+            totalColaboradores: number;
             periodo: string;
         } | null = null;
 
@@ -742,8 +743,11 @@ const filtros = [
             if (!statsContainer) return;
 
             // Solo cuentan los que tienen rangoBono = "Oro" (>= 100% cumplimiento del bono)
+            // Y excluimos a los de cargo "OPERADOR 1.5 SMLV"
             const operadoresBonoPerfecto = operadoresBase.filter((op) => {
-                return op.computed?.rangoBono === "Oro" || op.metrics?.rangoBono === "Oro";
+                const esOro = op.computed?.rangoBono === "Oro" || op.metrics?.rangoBono === "Oro";
+                const noEs15SMLV = op.cargo !== "OPERADOR 1.5 SMLV";
+                return esOro && noEs15SMLV;
             });
 
             statsContainer.classList.remove("hidden");
@@ -773,12 +777,35 @@ const filtros = [
             const elTaller = document.getElementById("bp-count-taller");
             const elTotal = document.getElementById("bp-count-total");
 
+            // Elementos de porcentaje
+            const pctOro = document.getElementById("bp-pct-oro");
+            const pctPlata = document.getElementById("bp-pct-plata");
+            const pctBronce = document.getElementById("bp-pct-bronce");
+            const pctMejorar = document.getElementById("bp-pct-mejorar");
+            const pctTaller = document.getElementById("bp-pct-taller");
+            const pctTotal = document.getElementById("bp-pct-total");
+
+            // Usamos operadoresBase excluyendo a "1.5 SMLV" como base de porcentaje
+            const totalColaboradoresPorcentaje = operadoresBase.filter(op => op.cargo !== "OPERADOR 1.5 SMLV").length;
+
+            const formatPct = (val: number) => {
+                if (totalColaboradoresPorcentaje === 0) return "0%";
+                return Math.round((val / totalColaboradoresPorcentaje) * 100) + "%";
+            };
+
             if (elOro) elOro.textContent = countOro.toString();
             if (elPlata) elPlata.textContent = countPlata.toString();
             if (elBronce) elBronce.textContent = countBronce.toString();
             if (elMejorar) elMejorar.textContent = countMejorar.toString();
             if (elTaller) elTaller.textContent = countTaller.toString();
             if (elTotal) elTotal.textContent = total.toString();
+
+            if (pctOro) pctOro.textContent = formatPct(countOro);
+            if (pctPlata) pctPlata.textContent = formatPct(countPlata);
+            if (pctBronce) pctBronce.textContent = formatPct(countBronce);
+            if (pctMejorar) pctMejorar.textContent = formatPct(countMejorar);
+            if (pctTaller) pctTaller.textContent = formatPct(countTaller);
+            if (pctTotal) pctTotal.textContent = formatPct(total);
 
             // Guardar datos para el modal
             const periodo =
@@ -797,6 +824,8 @@ const filtros = [
                     "Taller Conciencia": countTaller,
                 },
                 total,
+                totalColaboradores: totalColaboradoresPorcentaje,
+                totalRegistrados: operadoresBase.length,
                 periodo,
             };
 

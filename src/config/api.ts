@@ -1,6 +1,6 @@
 export const API_CONFIG = {
-    BASE_URL: 'https://indicador-desempeno.sao6.com.co/api/api',
-    //BASE_URL: 'http://localhost:3040/api',
+    //BASE_URL: 'https://indicador-desempeno.sao6.com.co/api/api',
+    BASE_URL: 'http://localhost:3040/api',
     ENDPOINTS: {
         LOGIN: '/autenticacion/login',
         OPERADORES: {
