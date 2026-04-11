@@ -829,6 +829,12 @@ const filtros = [
                 periodo,
             };
 
+            // Auto-actualizar modal si está abierto
+            const modalChartOpen = document.getElementById("modal-bono-chart")?.classList.contains("open");
+            if (modalChartOpen) {
+                document.dispatchEvent(new CustomEvent("abrirBonoModal", { detail: _bonoModalData }));
+            }
+
             // Registrar click (solo una vez) en la card de bono perfecto
             if (!statsContainer.dataset.clickBound) {
                 statsContainer.dataset.clickBound = "1";

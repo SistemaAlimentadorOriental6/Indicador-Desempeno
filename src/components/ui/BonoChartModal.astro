@@ -16,7 +16,46 @@
                 </div>
                 <div>
                     <h2>Operadores con 100% Bono</h2>
-                    <p id="bono-modal-subtitle">Distribución por rango</p>
+                    <div class="bono-modal-subtitle-wrapper">
+                        <p id="bono-modal-subtitle">Distribución por rango</p>
+                        
+                        <div class="custom-period-selector" id="bono-period-selector">
+                            <button class="period-selector-btn" id="period-selector-btn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="bono-month-icon"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                <span id="period-selector-text">Mes - Año</span>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="period-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </button>
+                            <div class="period-selector-dropdown" id="period-selector-dropdown">
+                                <div class="period-year-nav">
+                                    <button class="period-year-btn" id="period-prev-year">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                    </button>
+                                    <span id="period-current-year">2026</span>
+                                    <button class="period-year-btn" id="period-next-year">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </button>
+                                </div>
+                                <div class="period-months-grid" id="period-months-grid">
+                                    <button class="period-month-btn" data-month="0">Ene</button>
+                                    <button class="period-month-btn" data-month="1">Feb</button>
+                                    <button class="period-month-btn" data-month="2">Mar</button>
+                                    <button class="period-month-btn" data-month="3">Abr</button>
+                                    <button class="period-month-btn" data-month="4">May</button>
+                                    <button class="period-month-btn" data-month="5">Jun</button>
+                                    <button class="period-month-btn" data-month="6">Jul</button>
+                                    <button class="period-month-btn" data-month="7">Ago</button>
+                                    <button class="period-month-btn" data-month="8">Sep</button>
+                                    <button class="period-month-btn" data-month="9">Oct</button>
+                                    <button class="period-month-btn" data-month="10">Nov</button>
+                                    <button class="period-month-btn" data-month="11">Dic</button>
+                                </div>
+                                <div class="period-selector-footer">
+                                    <button class="period-all-btn" id="period-all-btn">Ver todos los periodos</button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
             <button class="bono-modal-close" id="bono-modal-close-btn" aria-label="Cerrar">
@@ -81,6 +120,7 @@
 
 <script>
     import Chart from "chart.js/auto";
+    import { FiltroService } from "@services/FiltroService";
 
     const COLORES: Record<string, { bg: string; border: string; soft: string }> = {
         Oro:     { bg: "#d97706", border: "#b45309", soft: "#fef3c7" },
@@ -98,16 +138,101 @@
     const overlay  = document.getElementById("modal-bono-chart");
     const closeBtn = document.getElementById("bono-modal-close-btn");
 
+    const selectorBtn = document.getElementById("period-selector-btn");
+    const dropdown = document.getElementById("period-selector-dropdown");
+    const textSpan = document.getElementById("period-selector-text");
+    const prevYearBtn = document.getElementById("period-prev-year");
+    const nextYearBtn = document.getElementById("period-next-year");
+    const yearSpan = document.getElementById("period-current-year");
+    const monthBtns = document.querySelectorAll(".period-month-btn");
+    const allBtn = document.getElementById("period-all-btn");
+    
+    let selectedYear = new Date().getFullYear();
+    let selectedMonth = -1; // -1 means 'all' or year-only depending on context
+    const shortMonthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
     const cerrarModal = () => {
         overlay?.classList.remove("open");
         document.body.style.overflow = "auto";
         if (modalChart) { modalChart.destroy(); modalChart = null; }
+        dropdown?.classList.remove("open");
     };
 
     closeBtn?.addEventListener("click", cerrarModal);
     overlay?.addEventListener("click", (e) => { if (e.target === overlay) cerrarModal(); });
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && overlay?.classList.contains("open")) cerrarModal();
+    });
+
+    selectorBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdown?.classList.toggle("open");
+    });
+
+    document.addEventListener("click", (e) => {
+        if (dropdown && dropdown.classList.contains("open") && !document.getElementById("bono-period-selector")?.contains(e.target as Node)) {
+            dropdown.classList.remove("open");
+        }
+    });
+
+    const updateSelectorUI = () => {
+        if (yearSpan) yearSpan.textContent = selectedYear.toString();
+        
+        monthBtns.forEach(btn => {
+            const m = parseInt((btn as HTMLElement).dataset.month || "0", 10);
+            if (m === selectedMonth) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+        });
+
+        if (selectedMonth >= 0) {
+            if (textSpan) textSpan.textContent = `${shortMonthNames[selectedMonth]} ${selectedYear}`;
+        } else {
+            if (textSpan) textSpan.textContent = "Todos los periodos";
+        }
+    };
+
+    const applyPeriodFilter = () => {
+        const currentFilters = FiltroService.obtenerDeUrl();
+        if (selectedMonth >= 0) {
+            currentFilters.periodo = { tipo: "month", anio: selectedYear, mes: selectedMonth };
+        } else {
+            currentFilters.periodo = { tipo: "all", anio: selectedYear, mes: -1 };
+        }
+        
+        document.dispatchEvent(new CustomEvent("applyFilters", { detail: currentFilters }));
+        FiltroService.sincronizarUrl(currentFilters);
+        dropdown?.classList.remove("open");
+    };
+
+    prevYearBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectedYear--;
+        updateSelectorUI();
+    });
+
+    nextYearBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectedYear++;
+        updateSelectorUI();
+    });
+
+    monthBtns.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            selectedMonth = parseInt((btn as HTMLElement).dataset.month || "0", 10);
+            updateSelectorUI();
+            applyPeriodFilter();
+        });
+    });
+
+    allBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectedMonth = -1;
+        updateSelectorUI();
+        applyPeriodFilter();
     });
 
     // Toggle tipo de gráfico
@@ -342,6 +467,25 @@
         const subtituloEl = document.getElementById("bono-modal-subtitle");
         if (subtituloEl && periodo) subtituloEl.textContent = `Distribución por rango — ${periodo}`;
 
+        // Sincronizar el valor del input de mes/año con los filtros actuales
+        const currentFilters = FiltroService.obtenerDeUrl();
+        if (currentFilters.periodo) {
+            if (currentFilters.periodo.tipo === "month") {
+                selectedYear = currentFilters.periodo.anio;
+                selectedMonth = currentFilters.periodo.mes;
+                updateSelectorUI();
+            } else if (currentFilters.periodo.tipo === "year") {
+                selectedYear = currentFilters.periodo.anio;
+                selectedMonth = -1;
+                updateSelectorUI();
+                if (textSpan) textSpan.textContent = `Año ${selectedYear}`;
+            } else {
+                selectedYear = new Date().getFullYear();
+                selectedMonth = -1;
+                updateSelectorUI();
+            }
+        }
+
         actualizarBadges(porRango);
         overlay?.classList.add("open");
         document.body.style.overflow = "hidden";
@@ -440,6 +584,168 @@
         margin: 0;
         font-family: 'Outfit', sans-serif;
         font-weight: 500;
+    }
+
+    .bono-modal-subtitle-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .custom-period-selector {
+        position: relative;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .period-selector-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        height: 32px;
+    }
+
+    .period-selector-btn:hover {
+        background: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #0f172a;
+    }
+
+    .bono-month-icon {
+        color: #64748b;
+    }
+
+    .period-chevron {
+        color: #94a3b8;
+        transition: transform 0.2s ease;
+    }
+
+    .period-selector-dropdown.open ~ .period-selector-btn .period-chevron {
+        transform: rotate(180deg);
+    }
+
+    .custom-period-selector.open .period-chevron {
+        transform: rotate(180deg);
+    }
+
+    .period-selector-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        width: 240px;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        padding: 16px;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .period-selector-dropdown.open {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .period-year-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+    }
+
+    .period-year-btn {
+        background: #f1f5f9;
+        border: none;
+        border-radius: 8px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .period-year-btn:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+    }
+
+    #period-current-year {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .period-months-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .period-month-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 8px 0;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .period-month-btn:hover {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        color: #0f172a;
+    }
+
+    .period-month-btn.active {
+        background: #22c55e;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .period-selector-footer {
+        border-top: 1px solid #f1f5f9;
+        padding-top: 12px;
+    }
+
+    .period-all-btn {
+        width: 100%;
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        padding: 8px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .period-all-btn:hover {
+        background: #f1f5f9;
+        border-color: #94a3b8;
+        color: #0f172a;
     }
 
     .bono-modal-close {
