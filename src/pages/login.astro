@@ -79,7 +79,7 @@ const mensajeInicial = razon
                             </div>
                         </div>
 
-                        <button type="submit" class="submit-btn" id="loginBtn">
+                        <button type="button" class="submit-btn" id="loginBtn">
                             Iniciar Sesión
                         </button>
                         <div
@@ -598,198 +598,142 @@ const mensajeInicial = razon
         <script>
             import { API_CONFIG, getApiUrl } from "@config/api";
 
-            // Lógica para el toggle de contraseña con cambio de icono dinámico
-            const passwordInput = document.getElementById(
-                "password",
-            ) as HTMLInputElement;
-            const toggleButton = document.getElementById("togglePassword");
+            document.addEventListener("astro:page-load", () => {
+                const passwordInput = document.getElementById("password") as HTMLInputElement | null;
+                const toggleButton = document.getElementById("togglePassword") as HTMLButtonElement | null;
 
-            toggleButton?.addEventListener("click", () => {
-                const isPassword =
-                    passwordInput.getAttribute("type") === "password";
-                passwordInput.setAttribute(
-                    "type",
-                    isPassword ? "text" : "password",
-                );
+                toggleButton?.addEventListener("click", () => {
+                    if (!passwordInput) return;
+                    const isPassword = passwordInput.getAttribute("type") === "password";
+                    passwordInput.setAttribute("type", isPassword ? "text" : "password");
+                    toggleButton.style.opacity = isPassword ? "1" : "0.5";
+                });
 
-                // Feedback visual simple
-                toggleButton.style.opacity = isPassword ? "1" : "0.5";
-            });
+                const loginBtn = document.getElementById("loginBtn") as HTMLButtonElement | null;
+                const usernameInput = document.getElementById("username") as HTMLInputElement | null;
+                const loginMessage = document.getElementById("loginMessage") as HTMLElement | null;
 
-            // Lógica de Autenticación Real
-            const loginBtn = document.getElementById(
-                "loginBtn",
-            ) as HTMLButtonElement;
-            const usernameInput = document.getElementById(
-                "username",
-            ) as HTMLInputElement;
-            const loginMessage = document.getElementById(
-                "loginMessage",
-            ) as HTMLDivElement;
+                const showMessage = (msg: string, type: "error" | "success") => {
+                    if (!loginMessage) return;
 
-            const showMessage = (msg: string, type: "error" | "success") => {
-                if (!loginMessage) return;
-
-                // Si ya hay un mensaje, lo ocultamos primero para que el cambio de texto no sea brusco
-                if (
-                    loginMessage.classList.contains("visible") &&
-                    loginMessage.textContent !== msg
-                ) {
-                    loginMessage.classList.remove("visible");
-                    setTimeout(() => {
+                    if (loginMessage.classList.contains("visible") && loginMessage.textContent !== msg) {
+                        loginMessage.classList.remove("visible");
+                        setTimeout(() => {
+                            loginMessage.textContent = msg;
+                            loginMessage.className = `login-message ${type} visible`;
+                        }, 200);
+                    } else {
                         loginMessage.textContent = msg;
                         loginMessage.className = `login-message ${type} visible`;
-                    }, 200);
-                } else {
-                    loginMessage.textContent = msg;
-                    loginMessage.className = `login-message ${type} visible`;
-                }
-            };
-
-            const hideMessage = () => {
-                if (!loginMessage) return;
-                loginMessage.classList.remove("visible");
-            };
-
-            const handleLogin = async (e: Event) => {
-                e.preventDefault();
-                hideMessage();
-
-                const codigo = usernameInput.value.trim();
-                const clave = passwordInput.value.trim();
-
-                if (!codigo || !clave) {
-                    showMessage(
-                        "Por favor, ingresa tu código y contraseña.",
-                        "error",
-                    );
-                    return;
-                }
-
-                const originalBtnText = loginBtn.innerHTML;
-                loginBtn.innerHTML = "Autenticando...";
-                loginBtn.disabled = true;
-                loginBtn.style.opacity = "0.7";
-
-                // ── Usuarios admin locales (acceso sin backend) ──────────────
-                const ADMINS_LOCALES: Record<string, string> = {
-                    ADMIN: "MarioValle",
-                    MarioValle: "ADMIN",
+                    }
                 };
-                const claveLocalAdmin = ADMINS_LOCALES[codigo];
-                if (claveLocalAdmin !== undefined) {
-                    if (clave !== claveLocalAdmin) {
+
+                const hideMessage = () => {
+                    if (!loginMessage) return;
+                    loginMessage.classList.remove("visible");
+                };
+
+                const handleLogin = async () => {
+                    hideMessage();
+
+                    const codigo = usernameInput?.value.trim() ?? "";
+                    const clave = passwordInput?.value.trim() ?? "";
+
+                    if (!codigo || !clave) {
+                        showMessage("Por favor, ingresa tu código y contraseña.", "error");
+                        return;
+                    }
+
+                    if (!loginBtn) return;
+
+                    const originalBtnText = loginBtn.innerHTML;
+                    loginBtn.innerHTML = "Autenticando...";
+                    loginBtn.disabled = true;
+                    loginBtn.style.opacity = "0.7";
+
+                    const ADMINS_LOCALES: Record<string, string> = {
+                        ADMIN: "MarioValle",
+                        MarioValle: "ADMIN",
+                    };
+                    const claveLocalAdmin = ADMINS_LOCALES[codigo];
+
+                    if (claveLocalAdmin !== undefined) {
+                        if (clave !== claveLocalAdmin) {
+                            loginBtn.innerHTML = "Error";
+                            loginBtn.style.backgroundColor = "var(--color-danger)";
+                            showMessage("Contraseña incorrecta para el usuario administrador.", "error");
+                            setTimeout(() => {
+                                loginBtn.innerHTML = originalBtnText;
+                                loginBtn.style.backgroundColor = "#4cc253";
+                                loginBtn.disabled = false;
+                                loginBtn.style.opacity = "1";
+                            }, 3000);
+                            return;
+                        }
+
+                        const usuarioMock = { codigo, nombre: codigo, rol: "admin" };
+                        const tokenMock = `local_admin_${codigo}_${Date.now()}`;
+                        const exp = new Date(Date.now() + 8 * 60 * 60 * 1000).toUTCString();
+
+                        localStorage.setItem("user_token", tokenMock);
+                        localStorage.setItem("user_data", JSON.stringify(usuarioMock));
+                        document.cookie = `auth_token=${tokenMock}; path=/; expires=${exp}; SameSite=Strict`;
+                        document.cookie = `auth_usuario=${encodeURIComponent(JSON.stringify(usuarioMock))}; path=/; expires=${exp}; SameSite=Strict`;
+
+                        loginBtn.innerHTML = "¡Éxito!";
+                        loginBtn.style.backgroundColor = "var(--color-success)";
+                        showMessage("¡Bienvenido, administrador!", "success");
+                        setTimeout(() => { window.location.href = "/admin/rankings/operadores"; }, 800);
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.LOGIN), {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ codigo, clave }),
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            loginBtn.innerHTML = "¡Éxito!";
+                            loginBtn.style.backgroundColor = "var(--color-success)";
+                            showMessage("¡Inicio de sesión exitoso!", "success");
+
+                            localStorage.setItem("user_token", data.access_token);
+                            localStorage.setItem("user_data", JSON.stringify(data.usuario));
+
+                            const expiracion = new Date(Date.now() + 8 * 60 * 60 * 1000).toUTCString();
+                            document.cookie = `auth_token=${data.access_token}; path=/; expires=${expiracion}; SameSite=Strict`;
+                            document.cookie = `auth_usuario=${encodeURIComponent(JSON.stringify(data.usuario))}; path=/; expires=${expiracion}; SameSite=Strict`;
+
+                            const rol: string = data.usuario?.rol ?? "operador";
+                            const destino = rol === "admin"
+                                ? "/admin/rankings/operadores"
+                                : "/operadores/desempeno";
+
+                            setTimeout(() => { window.location.href = destino; }, 800);
+                        } else {
+                            const mensajeError: string = data.message ?? data.detail ?? "Credenciales inválidas";
+                            throw new Error(mensajeError);
+                        }
+                    } catch (error) {
                         loginBtn.innerHTML = "Error";
                         loginBtn.style.backgroundColor = "var(--color-danger)";
-                        showMessage(
-                            "Contraseña incorrecta para el usuario administrador.",
-                            "error",
-                        );
+                        showMessage("Error: Verifica tus datos", "error");
+
                         setTimeout(() => {
                             loginBtn.innerHTML = originalBtnText;
                             loginBtn.style.backgroundColor = "#4cc253";
                             loginBtn.disabled = false;
                             loginBtn.style.opacity = "1";
                         }, 3000);
-                        return;
                     }
-                    const usuarioMock = {
-                        codigo,
-                        nombre: codigo,
-                        rol: "admin",
-                    };
-                    const tokenMock = `local_admin_${codigo}_${Date.now()}`;
-                    const exp = new Date(
-                        Date.now() + 8 * 60 * 60 * 1000,
-                    ).toUTCString();
-                    localStorage.setItem("user_token", tokenMock);
-                    localStorage.setItem(
-                        "user_data",
-                        JSON.stringify(usuarioMock),
-                    );
-                    document.cookie = `auth_token=${tokenMock}; path=/; expires=${exp}; SameSite=Strict`;
-                    document.cookie = `auth_usuario=${encodeURIComponent(JSON.stringify(usuarioMock))}; path=/; expires=${exp}; SameSite=Strict`;
-                    loginBtn.innerHTML = "¡Éxito!";
-                    loginBtn.style.backgroundColor = "var(--color-success)";
-                    showMessage("¡Bienvenido, administrador!", "success");
-                    setTimeout(() => {
-                        window.location.href = "/admin/rankings/operadores";
-                    }, 800);
-                    return;
-                }
-                // ─────────────────────────────────────────────────────────────
+                };
 
-                try {
-                    const response = await fetch(
-                        getApiUrl(API_CONFIG.ENDPOINTS.LOGIN),
-                        {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                            },
-                            body: JSON.stringify({ codigo, clave }),
-                        },
-                    );
-
-                    const data = await response.json();
-
-                    if (response.ok) {
-                        loginBtn.innerHTML = "¡Éxito!";
-                        loginBtn.style.backgroundColor = "var(--color-success)";
-                        showMessage("¡Inicio de sesión exitoso!", "success");
-
-                        // Guardar sesión en localStorage
-                        localStorage.setItem("user_token", data.access_token);
-                        localStorage.setItem(
-                            "user_data",
-                            JSON.stringify(data.usuario),
-                        );
-
-                        // Establecer cookies para el middleware del servidor
-                        // Expiración: 8 horas
-                        const expiracion = new Date(
-                            Date.now() + 8 * 60 * 60 * 1000,
-                        ).toUTCString();
-                        document.cookie = `auth_token=${data.access_token}; path=/; expires=${expiracion}; SameSite=Strict`;
-                        document.cookie = `auth_usuario=${encodeURIComponent(JSON.stringify(data.usuario))}; path=/; expires=${expiracion}; SameSite=Strict`;
-
-                        // Redirección inteligente según el rol
-                        const rol = data.usuario.rol || "operador";
-                        const esAdminCheck = rol === "admin";
-
-                        setTimeout(() => {
-                            if (esAdminCheck) {
-                                window.location.href =
-                                    "/admin/rankings/operadores";
-                            } else {
-                                window.location.href = "/operadores/desempeno";
-                            }
-                        }, 800);
-                    } else {
-                        throw new Error(
-                            data.message || "Credenciales inválidas",
-                        );
-                    }
-                } catch (error: any) {
-                    console.error("Error de login:", error);
-                    loginBtn.innerHTML = "Error";
-                    loginBtn.style.backgroundColor = "var(--color-danger)";
-
-                    showMessage(
-                        error.message || "Error: Verifica tus datos",
-                        "error",
-                    );
-
-                    setTimeout(() => {
-                        loginBtn.innerHTML = originalBtnText;
-                        loginBtn.style.backgroundColor = "#4cc253"; // Restaurar color original
-                        loginBtn.disabled = false;
-                        loginBtn.style.opacity = "1";
-                    }, 3000);
-                }
-            };
-
-            loginBtn?.addEventListener("click", handleLogin);
+                loginBtn?.addEventListener("click", handleLogin);
+            });
         </script>
     </body>
 </html>
