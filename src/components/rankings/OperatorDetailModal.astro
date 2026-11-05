@@ -406,9 +406,11 @@ const { operator } = Astro.props;
                 return {
                     codigo: n.codigoFactor,
                     concepto: rule.causa,
+                    observaciones: n.observaciones || "Sin observaciones",
                     porcentaje: porcentajeLabel,
                     monto: monto,
                     fecha: new Date(n.fechaInicioNovedad).toLocaleDateString(),
+                    fechaOrden: new Date(n.fechaInicioNovedad).getTime(),
                 };
             })
             .filter((d: any) => d !== null);
@@ -420,7 +422,7 @@ const { operator } = Astro.props;
         if (deductions.length === 0) {
             const tr = document.createElement("tr");
             const td = document.createElement("td");
-            td.colSpan = 5;
+            td.colSpan = 6;
             td.className = "loader-cell text-slate-400 italic";
             td.textContent = "Sin deducciones registradas en este período";
             tr.appendChild(td);
@@ -430,10 +432,7 @@ const { operator } = Astro.props;
 
         const fragment = document.createDocumentFragment();
         deductions
-            .sort(
-                (a: any, b: any) =>
-                    new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
-            )
+            .sort((a: any, b: any) => b.fechaOrden - a.fechaOrden)
             .forEach((d: any) => {
                 const tr = document.createElement("tr");
                 const tdCode = document.createElement("td");
@@ -442,6 +441,10 @@ const { operator } = Astro.props;
 
                 const tdConcepto = document.createElement("td");
                 tdConcepto.textContent = d.concepto;
+
+                const tdObservaciones = document.createElement("td");
+                tdObservaciones.className = "text-slate-500";
+                tdObservaciones.textContent = d.observaciones;
 
                 const tdPct = document.createElement("td");
                 tdPct.className = "text-center font-semibold text-slate-500";
@@ -459,7 +462,7 @@ const { operator } = Astro.props;
                 tdFecha.className = "text-right text-slate-500";
                 tdFecha.textContent = d.fecha;
 
-                tr.append(tdCode, tdConcepto, tdPct, tdMonto, tdFecha);
+                tr.append(tdCode, tdConcepto, tdObservaciones, tdPct, tdMonto, tdFecha);
                 fragment.appendChild(tr);
             });
         el.dedBody.appendChild(fragment);

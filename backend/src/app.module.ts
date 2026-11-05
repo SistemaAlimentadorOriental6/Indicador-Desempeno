@@ -12,9 +12,6 @@ import { Novedad } from './desempeno/entities/novedad.entity';
 import { VariableControlPrueba } from './carga-datos/entities/variable-control-prueba.entity';
 import { UsuariosModule } from './usuarios/usuarios.module';
 import { Usuario } from './usuarios/entities/usuario.entity';
-import { TareaSolicitada } from './mantenimiento/entities/tarea-solicitada.entity';
-import { ProgramacionEmpleado } from './mantenimiento/entities/programacion-empleado.entity';
-import { MantenimientoModule } from './mantenimiento/mantenimiento.module';
 
 @Module({
   imports: [
@@ -42,17 +39,6 @@ import { MantenimientoModule } from './mantenimiento/mantenimiento.module';
       },
       synchronize: false,
     }),
-    TypeOrmModule.forRoot({
-      name: 'mantenimiento',
-      type: 'mariadb',
-      host: process.env.DB_HOST,
-      port: 3306,
-      username: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: 'bdsaocomco_mantenimiento',
-      entities: [TareaSolicitada],
-      synchronize: false,
-    }),
     /*
     TypeOrmModule.forRoot({
       name: 'programacion',
@@ -70,7 +56,6 @@ import { MantenimientoModule } from './mantenimiento/mantenimiento.module';
     DesempenoModule,
     CargaDatosModule,
     UsuariosModule,
-    // MantenimientoModule, // Comentado porque depende de la conexión programacion
   ],
   controllers: [AppController],
   providers: [AppService],

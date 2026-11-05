@@ -128,6 +128,8 @@ import Icon from "@components/ui/Icon.astro";
                     const fecha = new Date(
                         n.fechaInicioNovedad,
                     ).toLocaleDateString();
+                    const causa =
+                        rule?.causa || n.label || "Novedad registrada";
 
                     tr.innerHTML = `
                         <td>
@@ -139,7 +141,7 @@ import Icon from "@components/ui/Icon.astro";
                         <td>
                             <div class="factor-cell">
                                 <span class="code">${n.codigoFactor}</span>
-                                <span class="label">${n.label || "Novedad registrada"}</span>
+                                <span class="label"></span>
                             </div>
                         </td>
                         <td class="text-center">
@@ -149,6 +151,22 @@ import Icon from "@components/ui/Icon.astro";
                             <span class="monto-deduct">-${formatCurrency(deductionMonto)}</span>
                         </td>
                     `;
+
+                    const celdaFactor = tr.querySelector(".factor-cell");
+                    const etiquetaCausa = celdaFactor?.querySelector(".label");
+                    if (etiquetaCausa) etiquetaCausa.textContent = causa;
+                    if (
+                        celdaFactor &&
+                        n.observaciones &&
+                        n.observaciones.trim() !== "" &&
+                        n.observaciones.trim() !== causa
+                    ) {
+                        const etiquetaObservacion =
+                            document.createElement("span");
+                        etiquetaObservacion.className = "observacion-falta";
+                        etiquetaObservacion.textContent = n.observaciones;
+                        celdaFactor.appendChild(etiquetaObservacion);
+                    }
 
                     fragment.appendChild(tr);
                     setTimeout(() => {
@@ -394,6 +412,13 @@ import Icon from "@components/ui/Icon.astro";
         font-size: 0.85rem;
         font-weight: 600;
         color: #475569;
+    }
+
+    .factor-cell .observacion-falta {
+        font-size: 0.78rem;
+        color: #64748b;
+        margin-top: 4px;
+        line-height: 1.35;
     }
 
     .days-badge {

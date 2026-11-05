@@ -3,12 +3,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
 import { VariableControlPrueba } from './entities/variable-control-prueba.entity';
 import * as XLSX from 'xlsx';
+import { Operador } from '../autenticacion/entities/operador.entity';
+import { ApiEmpleadosService } from '../autenticacion/services/api-empleados.service';
 
 @Injectable()
 export class CargaDatosService {
     constructor(
         @InjectRepository(VariableControlPrueba)
         private readonly repoVariableControl: Repository<VariableControlPrueba>,
+        @InjectRepository(Operador)
+        private readonly repoOperador: Repository<Operador>,
+        private readonly apiEmpleadosService: ApiEmpleadosService,
     ) { }
 
     async procesarExcelKilometros(file: Express.Multer.File) {
@@ -156,5 +161,94 @@ export class CargaDatosService {
         // Forzar a medianoche para evitar desajustes de tiempo
         d.setHours(0, 0, 0, 0);
         return d;
+    }
+
+    async procesarExcelOperadores(file: Express.Multer.File) {
+        if (!file) throw new BadRequestException('Archivo no proporcionado');
+
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        if (rows.length === 0) throw new BadRequestException('El archivo está vacío');
+
+        // --- VALIDACIÓN DE COLUMNAS ---
+        const firstRow = rows[0] as any;
+
+        const colCodigo = Object.keys(firstRow).find(c => c.toUpperCase().trim().includes('CODIGO') || c.toUpperCase().trim().includes('CÓDIGO') || c.toUpperCase().trim() === 'CEDULA' || c.toUpperCase().trim() === 'CÉDULA');
+        const colZona = Object.keys(firstRow).find(c => c.toUpperCase().trim() === 'ZONA');
+        const colPadrino = Object.keys(firstRow).find(c => c.toUpperCase().trim() === 'PADRINO');
+
+        if (!colCodigo) {
+            throw new BadRequestException('Formato incorrecto. Falta la columna del código de empleado/operador (Ej: CÓDIGO o CODIGO).');
+        }
+
+        // Obtener códigos válidos de la API externa
+        let codigosValidos = new Set<string>();
+        try {
+            const empleados = await this.apiEmpleadosService.obtenerTodosLosEmpleados();
+            empleados.forEach(emp => {
+                codigosValidos.add(emp.CodigoOperador);
+            });
+        } catch (error) {
+            console.error("Error al obtener empleados para validación:", error);
+            throw new BadRequestException('No se pudo validar el personal contra la API externa en este momento.');
+        }
+
+        let creados = 0;
+        let actualizados = 0;
+        let omitidos = 0;
+        const errores: string[] = [];
+
+        for (const row of rows as any[]) {
+            try {
+                const rawCodigo = row[colCodigo];
+                const rawZona = colZona ? row[colZona] : null;
+                const rawPadrino = colPadrino ? row[colPadrino] : null;
+
+                if (!rawCodigo) {
+                    omitidos++;
+                    continue;
+                }
+
+                const codigo = String(rawCodigo).trim().padStart(4, '0');
+                const zona = rawZona ? String(rawZona).trim() : null;
+                const padrino = rawPadrino ? String(rawPadrino).trim() : null;
+
+                // Validar que el código exista en la API externa
+                if (!codigosValidos.has(codigo)) {
+                    errores.push(`El código de operador "${codigo}" no existe en el sistema oficial.`);
+                    omitidos++;
+                    continue;
+                }
+
+                // Buscar si existe en BD local
+                let operador = await this.repoOperador.findOne({ where: { codigo } });
+                if (!operador) {
+                    operador = this.repoOperador.create({
+                        codigo,
+                        zona,
+                        padrino
+                    });
+                    creados++;
+                } else {
+                    operador.zona = zona;
+                    operador.padrino = padrino;
+                    actualizados++;
+                }
+
+                await this.repoOperador.save(operador);
+
+            } catch (e) {
+                errores.push(`Error al procesar fila: ${e.message}`);
+                omitidos++;
+            }
+        }
+
+        return {
+            mensaje: `Procesamiento completado.`,
+            resumen: `Nuevos asignados: ${creados}. Actualizados: ${actualizados}. Omitidos/Erróneos: ${omitidos}.`,
+            detalles: { creados, actualizados, omitidos, errores }
+        };
     }
 }

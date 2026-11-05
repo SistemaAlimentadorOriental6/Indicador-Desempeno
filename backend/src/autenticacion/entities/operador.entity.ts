@@ -1,28 +1,16 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('operadores_sao6')
+@Entity('operadores')
 export class Operador {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column({ unique: true })
     codigo: string;
 
-    @Column()
-    nombre: string;
+    @Column({ type: 'varchar', nullable: true })
+    zona: string | null;
 
-    @Column({ type: 'int' })
-    cedula: number;
-
-    @Column({ nullable: true })
-    rol: string;
-
-    @Column({ nullable: true })
-    telefono: string;
-
-    @Column({ nullable: true })
-    zona: string;
-
-    @Column({ nullable: true })
-    padrino: string;
-
-    @Column({ nullable: true })
-    tarea: string;
+    @Column({ type: 'varchar', nullable: true })
+    padrino: string | null;
 }

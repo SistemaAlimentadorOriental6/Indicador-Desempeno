@@ -128,7 +128,8 @@ export class DesempenoService {
                 codigo_empleado as codigoEmpleado, 
                 codigo_factor as codigoFactor, 
                 fecha_inicio_novedad as fechaInicioNovedad,
-                fecha_fin_novedad as fechaFinNovedad
+                fecha_fin_novedad as fechaFinNovedad,
+                observaciones
              FROM novedades WHERE LPAD(codigo_empleado, 4, '0') = ?`,
             [String(codigoEmpleado).padStart(4, '0')]
         );

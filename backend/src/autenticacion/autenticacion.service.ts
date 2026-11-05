@@ -7,6 +7,7 @@ import { Usuario } from '../usuarios/entities/usuario.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { Operador } from './entities/operador.entity';
 
 @Injectable()
 export class AutenticacionService {
@@ -16,6 +17,8 @@ export class AutenticacionService {
         private readonly sqlServerDataSource: DataSource,
         @InjectRepository(Usuario)
         private readonly usuarioRepository: Repository<Usuario>,
+        @InjectRepository(Operador)
+        private readonly operadorRepository: Repository<Operador>,
     ) { }
 
     async validarLogin(loginDto: LoginDto) {
@@ -129,6 +132,19 @@ export class AutenticacionService {
 
         if (operadores.length === 0) return [];
 
+        // Obtener datos locales de zona y padrino
+        const dbOpsMap = new Map();
+        try {
+            const dbOperadores = await this.operadorRepository.find({
+                select: ['codigo', 'zona', 'padrino']
+            });
+            dbOperadores.forEach(op => {
+                dbOpsMap.set(op.codigo, op);
+            });
+        } catch (error) {
+            console.error("Error al obtener operadores locales:", error);
+        }
+
         // Función para normalizar cédulas (quitar ceros a la izquierda y espacios)
         const normalizar = (c: any) => String(c).trim().replace(/^0+/, '');
 
@@ -171,6 +187,7 @@ export class AutenticacionService {
             return operadores.map((o) => {
                 const cedulaNormalizada = normalizar(o.Cedula);
                 const extra = enrichedMap.get(cedulaNormalizada);
+                const dbOp = dbOpsMap.get(o.CodigoOperador);
 
                 return {
                     codigo: o.CodigoOperador,
@@ -181,17 +198,41 @@ export class AutenticacionService {
                     fechaIngreso: extra?.f_fecha_ingreso,
                     fechaRetiro: extra?.f_fecha_retiro,
                     foto: `https://admon.sao6.com.co/web/uploads/empleados/${o.Cedula}.jpg`,
+                    zona: dbOp?.zona || null,
+                    padrino: dbOp?.padrino || null,
                 };
             });
         } catch (error) {
             console.error("Error al enriquecer lista de operadores:", error);
-            return operadores.map((o) => ({
-                codigo: o.CodigoOperador,
-                cedula: o.Cedula,
-                nombre: 'Operador',
-                cargo: "OPERADOR",
-                foto: `https://admon.sao6.com.co/web/uploads/empleados/${o.Cedula}.jpg`,
-            }));
+            return operadores.map((o) => {
+                const dbOp = dbOpsMap.get(o.CodigoOperador);
+                return {
+                    codigo: o.CodigoOperador,
+                    cedula: o.Cedula,
+                    nombre: 'Operador',
+                    cargo: "OPERADOR",
+                    foto: `https://admon.sao6.com.co/web/uploads/empleados/${o.Cedula}.jpg`,
+                    zona: dbOp?.zona || null,
+                    padrino: dbOp?.padrino || null,
+                };
+            });
         }
+    }
+
+    async actualizarOperador(codigo: string, data: { zona: string; padrino: string }) {
+        let operador = await this.operadorRepository.findOne({ where: { codigo } });
+
+        if (!operador) {
+            operador = this.operadorRepository.create({
+                codigo,
+                zona: data.zona,
+                padrino: data.padrino
+            });
+        } else {
+            operador.zona = data.zona;
+            operador.padrino = data.padrino;
+        }
+
+        return this.operadorRepository.save(operador);
     }
 }

@@ -23,4 +23,13 @@ export class CargaDatosController {
         }
         return this.cargaDatosService.procesarExcelNovedades(file);
     }
+
+    @Post('operadores')
+    @UseInterceptors(FileInterceptor('archivo'))
+    async cargarOperadores(@UploadedFile() file: Express.Multer.File) {
+        if (!file) {
+            throw new BadRequestException('Debe subir un archivo Excel');
+        }
+        return this.cargaDatosService.procesarExcelOperadores(file);
+    }
 }
