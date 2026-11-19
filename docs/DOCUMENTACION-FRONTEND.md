@@ -80,8 +80,6 @@ src/
 - Cookie corrupta: la borra y redirige con `sesion_invalida`.
 - Rutas `/admin/*`: solo si `rol === 'admin'` o el código está en la lista `USUARIOS_ADMIN`; si no, `sin_permisos`.
 
-> [!WARNING]
-> La sesión se basa en una cookie con datos del usuario en JSON, sin firma. Además, `login.astro` contiene un acceso con datos *mock* para administradores. Ambos puntos deben revisarse antes de endurecer la seguridad.
 
 ## 6. Estado global (Redux)
 
@@ -126,9 +124,6 @@ getApiUrl('/desempeno/ranking')
 | `DESEMPENO.GET_PERIODOS` | `/desempeno/periodos` |
 | `MANTENIMIENTO.GET_RANKING` | `/mantenimiento/ranking` |
 
-> [!NOTE]
-> `BASE_URL` apunta a producción; para local cambiar a `http://localhost:3040/api` (hay una línea comentada). Lo ideal es moverla a una variable de entorno.
-
 ## 9. Componentes principales
 
 - **Rankings**: `OperatorCard`, `MaintenanceCard`, `SearchFilters`, `ModalFiltros`. La lista usa *scroll infinito* (20 elementos por carga).
@@ -156,13 +151,3 @@ pnpm preview
 
 GitHub Actions (`.github/workflows/deploy.yml`) en cada push a `main`: copia el código al servidor, instala, compila y reinicia con **PM2** (`indicador-desempeno-frontend`, ejecuta `dist/server/entry.mjs`).
 
-## 13. Diseño
-
-Ver [README-DESING.md](../README-DESING.md): estilo minimalista, sombras suaves, bordes redondeados y transiciones de ~0.25s.
-
-## 14. Puntos de mejora
-
-- `/mantenimiento/ranking` no existe en el backend actual.
-- Sustituir `any` por interfaces tipadas (por ejemplo, en el slice).
-- Mover los cargos especiales fijos a la base de datos.
-- Sesión firmada (JWT real) en lugar de cookie con JSON.
