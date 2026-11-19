@@ -97,12 +97,6 @@ SQL Server se consulta (solo lectura) en la tabla `SE_W0550` para obtener nombre
 2. **Operador**: si no es admin, formatea el código a 4 dígitos, lo busca en la API externa de empleados y valida que la **cédula** coincida con la `clave`.
 3. Enriquece con SQL Server (nombre, cargo, fechas) y busca la foto del empleado (`jpg`, `jpeg`, `png`) en el servidor de administración.
 
-> [!WARNING]
->
-> - El `access_token` de administrador es un texto fijo (`jwt-admin-simulado`); no hay JWT real ni guards activos en los endpoints.
-> - Se define `NODE_TLS_REJECT_UNAUTHORIZED = '0'` durante la validación de la foto, lo que desactiva la verificación TLS del proceso.
-> - La autorización real depende solo del middleware del frontend.
-
 ## 6. Reglas de negocio del desempeño
 
 Implementadas en `desempeno.service.ts`.
@@ -162,11 +156,3 @@ Más sobre pruebas en [TESTING.md](../backend/TESTING.md).
 
 Mismo workflow de GitHub Actions que el frontend: escribe el `.env`, compila y reinicia con **PM2** (`indicador-desempeno-backend`, ejecuta `pnpm run start:prod`).
 
-## 11. Puntos de mejora
-
-- Implementar JWT real y guards en los endpoints protegidos.
-- Quitar `NODE_TLS_REJECT_UNAUTHORIZED = '0'`.
-- Restringir CORS (hoy `origin: true`) y mover los puertos de BD a variables de entorno.
-- Crear el endpoint `/mantenimiento/ranking`, que el frontend ya usa.
-- Mover reglas de deducción, bonos y cargos especiales a la base de datos.
-- Dividir `desempeno.service.ts` (cálculo de bono, kilómetros y ranking) en servicios más pequeños.
